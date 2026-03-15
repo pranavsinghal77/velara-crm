@@ -81,6 +81,9 @@ export default function Documents() {
   const [docs, setDocs] = useState<Doc[]>(MOCK_DOCS);
   const [activeCategory, setActiveCategory] = useState<DocCategory>('All Documents');
   const [search, setSearch] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState('');
+  const [selectedClientName, setSelectedClientName] = useState('');
 
   // AI extract modal
   const [extractDoc, setExtractDoc] = useState<Doc | null>(null);
@@ -110,22 +113,39 @@ export default function Documents() {
   // ── filtered grid ─────────────────────────────────────────
   const filtered = useMemo(() => {
     let list = docs;
+    if (selectedClientId) list = list.filter((d) => d.leadId === selectedClientId);
     if (activeCategory !== 'All Documents') list = list.filter((d) => d.category === activeCategory);
     if (search.trim()) list = list.filter((d) => d.name.toLowerCase().includes(search.toLowerCase()) || d.leadName.toLowerCase().includes(search.toLowerCase()));
     return list;
-  }, [docs, activeCategory, search]);
+  }, [docs, selectedClientId, activeCategory, search]);
 
   // ── client list ───────────────────────────────────────────
   const clientDocs = useMemo(() => {
-    const m = new Map<string, { name: string; count: number }>();
+    const m = new Map<string, { leadId: string; name: string; count: number }>();
     docs.forEach((d) => {
       if (!d.leadId) return;
-      const e = m.get(d.leadId) || { name: d.leadName, count: 0 };
+      const e = m.get(d.leadId) || { leadId: d.leadId, name: d.leadName, count: 0 };
       e.count++;
       m.set(d.leadId, e);
     });
     return Array.from(m.values()).slice(0, 5);
   }, [docs]);
+
+  const visibleClientDocs = useMemo(() => {
+    if (!clientSearch.trim()) return clientDocs;
+    const q = clientSearch.toLowerCase();
+    return clientDocs.filter((c) => c.name.toLowerCase().includes(q));
+  }, [clientDocs, clientSearch]);
+
+  const visibleLeads = useMemo(() => {
+    const leadIdsWithDocs = new Set(clientDocs.map((c) => c.leadId));
+    const base = leads.filter((lead) => !leadIdsWithDocs.has(lead.id));
+    if (!clientSearch.trim()) return base.slice(0, Math.max(0, 5 - visibleClientDocs.length));
+    const q = clientSearch.toLowerCase();
+    return base
+      .filter((lead) => lead.name.toLowerCase().includes(q))
+      .slice(0, Math.max(0, 5 - visibleClientDocs.length));
+  }, [clientDocs, leads, clientSearch, visibleClientDocs.length]);
 
   // ── AI extract ────────────────────────────────────────────
   function openExtract(doc: Doc) {
@@ -158,10 +178,18 @@ export default function Documents() {
     setNotice(`Downloaded ${doc.name}.`);
   }
 
-  function handleViewLeadDocs(leadName: string) {
-    setSearch(leadName);
+  function handleViewLeadDocs(leadId: string, leadName: string) {
+    setSelectedClientId(leadId);
+    setSelectedClientName(leadName);
+    setSearch('');
     setActiveCategory('All Documents');
-    setNotice(`Showing documents for ${leadName}.`);
+    setNotice(`Showing all documents for ${leadName}.`);
+  }
+
+  function clearClientFilter() {
+    setSelectedClientId('');
+    setSelectedClientName('');
+    setNotice('Showing all client documents.');
   }
 
   // ── upload ────────────────────────────────────────────────
@@ -284,24 +312,41 @@ export default function Documents() {
           {/* Clients with docs */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Clients with Documents</h3>
+            <div className="relative mb-3">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={clientSearch}
+                onChange={(e) => setClientSearch(e.target.value)}
+                placeholder="Search client profile..."
+                className="w-full pl-8 pr-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
             <div className="space-y-2">
-              {clientDocs.map((c) => (
-                <div key={c.name} className="flex items-center gap-2.5">
+              {visibleClientDocs.map((c) => (
+                <button
+                  key={c.leadId}
+                  onClick={() => handleViewLeadDocs(c.leadId, c.name)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors ${selectedClientId === c.leadId ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'}`}
+                >
                   <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold shrink-0">
                     {c.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <span className="flex-1 text-sm font-medium text-gray-800 truncate">{c.name}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 shrink-0">{c.count} docs</span>
-                </div>
+                </button>
               ))}
-              {leads.slice(0, Math.max(0, 5 - clientDocs.length)).map((l) => (
-                <div key={l.id} className="flex items-center gap-2.5">
+              {visibleLeads.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => handleViewLeadDocs(l.id, l.name)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors ${selectedClientId === l.id ? 'bg-blue-50 ring-1 ring-blue-200' : 'hover:bg-gray-50'}`}
+                >
                   <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 text-xs font-bold shrink-0">
                     {l.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <span className="flex-1 text-sm font-medium text-gray-700 truncate">{l.name}</span>
-                  <button onClick={() => handleViewLeadDocs(l.name)} className="text-[10px] font-semibold text-blue-600 hover:underline shrink-0">View</button>
-                </div>
+                  <span className="text-[10px] font-semibold text-blue-600 shrink-0">View</span>
+                </button>
               ))}
             </div>
           </div>
@@ -309,6 +354,15 @@ export default function Documents() {
 
         {/* ─── RIGHT ────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
+          {selectedClientId ? (
+            <div className="mb-3 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 flex items-center justify-between">
+              <span>
+                Client profile selected: <strong>{selectedClientName}</strong>. Showing only this customer's files.
+              </span>
+              <button onClick={clearClientFilter} className="font-semibold hover:text-blue-900">Clear</button>
+            </div>
+          ) : null}
+
           {/* Search + filters */}
           <div className="flex items-center gap-3 mb-4">
             <div className="relative flex-1">
