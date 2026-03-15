@@ -1,14 +1,46 @@
-@import "tailwindcss";
+:root {
+  font-family: 'Segoe UI', 'Trebuchet MS', 'Lucida Sans Unicode', sans-serif;
+  line-height: 1.45;
+  font-weight: 500;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --text-strong: #152844;
+  --text-soft: #4f6788;
+  --bg-gradient: linear-gradient(150deg, #e9f3ff 0%, #f7fbff 48%, #eaf6ff 100%);
+}
+
+body[data-theme='mist'] {
+  --text-strong: #142742;
+  --text-soft: #4b6281;
+  --bg-gradient: radial-gradient(circle at 16% 8%, rgba(145, 219, 255, 0.48), transparent 34%),
+    radial-gradient(circle at 86% 85%, rgba(173, 196, 255, 0.42), transparent 38%),
+    linear-gradient(160deg, #eff8ff 0%, #f8fbff 42%, #eaf4ff 100%);
+}
+
+body[data-theme='sunset'] {
+  --text-strong: #3b2212;
+  --text-soft: #805b49;
+  --bg-gradient: radial-gradient(circle at 10% 20%, rgba(255, 183, 128, 0.5), transparent 32%),
+    radial-gradient(circle at 85% 75%, rgba(255, 139, 112, 0.35), transparent 40%),
+    linear-gradient(160deg, #fff2e8 0%, #fffaf6 52%, #ffefe1 100%);
+}
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont,
-    'Segoe UI', sans-serif;
-  background-color: #F1F5F9;
-  color: #1E293B;
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg-gradient);
+  color: var(--text-strong);
 }
