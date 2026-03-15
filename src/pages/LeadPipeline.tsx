@@ -132,7 +132,7 @@ export default function LeadPipeline() {
 
   // ── AI score preview ─────────────────────────────────────
   function calcScore(f: typeof form) {
-    let base = sourceBase[f.source] ?? 70;
+    const base = sourceBase[f.source] ?? 70;
     let bonus = 0;
     if (f.company) bonus += 5;
     if (f.designation) bonus += 3;
@@ -236,7 +236,15 @@ export default function LeadPipeline() {
     }
   }
   function toggleOne(id: string) {
-    setSelected((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSelected((s) => {
+      const n = new Set(s);
+      if (n.has(id)) {
+        n.delete(id);
+      } else {
+        n.add(id);
+      }
+      return n;
+    });
   }
 
   const viewLead = viewId ? leads.find((l) => l.id === viewId) : null;

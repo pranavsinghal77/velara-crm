@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 :root {
   font-family: 'Segoe UI', 'Trebuchet MS', 'Lucida Sans Unicode', sans-serif;
   line-height: 1.45;

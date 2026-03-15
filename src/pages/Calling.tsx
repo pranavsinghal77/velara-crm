@@ -90,14 +90,22 @@ const HISTORY_TABS: HistoryFilter[] = ['All', 'Incoming', 'Outgoing', 'Missed', 
 
 function useTimer(running: boolean) {
   const [secs, setSecs] = useState(0);
+
   useEffect(() => {
-    if (!running) { setSecs(0); return; }
-    const id = setInterval(() => setSecs((s) => s + 1), 1000);
+    if (!running) return;
+    const id = setInterval(() => setSecs((v) => v + 1), 1000);
     return () => clearInterval(id);
   }, [running]);
-  const m = String(Math.floor(secs / 60)).padStart(2, '0');
-  const s = String(secs % 60).padStart(2, '0');
-  return `${m}:${s}`;
+
+  const display = running ? secs : 0;
+  const m = String(Math.floor(display / 60)).padStart(2, '0');
+  const s = String(display % 60).padStart(2, '0');
+
+  function reset() {
+    setSecs(0);
+  }
+
+  return { timerText: `${m}:${s}`, reset };
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -119,7 +127,7 @@ export default function Calling() {
   const [recording, setRecording] = useState(false);
   const [speaker, setSpeaker] = useState(false);
   const [callNotes, setCallNotes] = useState('');
-  const timer = useTimer(callActive && callStatus === 'Connected');
+  const { timerText, reset } = useTimer(callActive && callStatus === 'Connected');
 
   // history
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('All');
@@ -175,6 +183,7 @@ export default function Calling() {
 
   function startCall() {
     if (!dialNumber) return;
+    reset();
     setCallActive(true);
     setCallStatus('Ringing');
     setMuted(false); setOnHold(false); setRecording(false); setSpeaker(false); setCallNotes('');
@@ -182,6 +191,7 @@ export default function Calling() {
   }
 
   function endCall() {
+    reset();
     setCallActive(false);
     setCallStatus('Ringing');
     setActiveLead(null);
@@ -412,7 +422,7 @@ export default function Calling() {
                   <span className="text-xs font-semibold bg-white/20 px-2.5 py-1 rounded-full">{callStatus}</span>
                 </div>
                 <div className="text-center">
-                  <span className="text-4xl font-mono font-bold tracking-widest">{timer}</span>
+                  <span className="text-4xl font-mono font-bold tracking-widest">{timerText}</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {([

@@ -45,6 +45,11 @@ const MOCK_CALLS: Record<string, number> = { u1: 24, u2: 18, u3: 31, u4: 14 };
 const MOCK_STREAK: Record<string, number> = { u1: 3, u2: 5, u3: 7, u4: 2 };
 const MOCK_REVENUE: Record<string, number> = { u1: 18.5, u2: 12.3, u3: 22.1, u4: 8.7 };
 
+function fallbackRevenue(id: string) {
+  const seed = id.split('').reduce((sum, ch) => sum + ch.charCodeAt(0), 0);
+  return 6 + (seed % 17);
+}
+
 const WEEKLY_DATA = [
   { day: 'Mon', Pranav: 2, Rahul: 1, Sneha: 3, Karan: 1 },
   { day: 'Tue', Pranav: 3, Rahul: 2, Sneha: 4, Karan: 2 },
@@ -77,7 +82,7 @@ export default function Leaderboard() {
           role: u.role,
           leads: userLeads.length,
           won: won.length,
-          revenue: MOCK_REVENUE[u.id] ?? Math.random() * 15 + 3,
+          revenue: MOCK_REVENUE[u.id] ?? fallbackRevenue(u.id),
           avgScore,
           calls: MOCK_CALLS[u.id] ?? 10,
           streak: MOCK_STREAK[u.id] ?? 1,

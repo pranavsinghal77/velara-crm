@@ -9,6 +9,7 @@ const pageTitles: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/leads': 'Lead Pipeline',
   '/inbox': 'Unified Inbox',
+  '/comms': 'Comms Intelligence Hub',
   '/reminders': 'Reminders & Follow-ups',
   '/analytics': 'Analytics',
   '/settings': 'Settings',
@@ -16,6 +17,9 @@ const pageTitles: Record<string, string> = {
   '/documents': 'Documents',
   '/leaderboard': 'Leaderboard',
   '/social': 'Social Media',
+  '/team': 'Team Workspace',
+  '/workflows': 'Workflow Studio',
+  '/support': 'Support Command',
 };
 
 export default function Layout() {

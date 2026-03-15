@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import {
   MessageSquare,
   Send,
@@ -108,7 +108,7 @@ export default function Inbox() {
   const [input, setInput] = useState('');
   const [showAI, setShowAI] = useState(true);
   const [aiIdx, setAiIdx] = useState(0);
-  const [smartReplies, setSmartReplies] = useState<string[]>(DEFAULT_SMART_REPLIES);
+  const [replySeed, setReplySeed] = useState(0);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // rotate AI suggestion
@@ -146,16 +146,16 @@ export default function Inbox() {
   const activeConvo = conversations.find((c) => c.leadId === selectedLead);
   const activeLead = selectedLead ? leadMap.get(selectedLead) : null;
 
-  // refresh smart replies based on last received message
-  const refreshSmartReplies = useCallback(() => {
+  const smartReplies = useMemo(() => {
     const convo = conversations.find((c) => c.leadId === selectedLead);
     const lastReceived = convo?.msgs.filter((m) => m.sender === 'received').at(-1);
-    setSmartReplies(getSmartReplies(lastReceived?.content));
-  }, [conversations, selectedLead]);
+    const base = getSmartReplies(lastReceived?.content);
+    return replySeed % 2 === 0 ? base : [...base].reverse();
+  }, [conversations, replySeed, selectedLead]);
 
-  useEffect(() => {
-    refreshSmartReplies();
-  }, [refreshSmartReplies]);
+  function refreshSmartReplies() {
+    setReplySeed((seed) => seed + 1);
+  }
 
   const unreadTotal = useMemo(
     () => messages.filter((m) => !m.isRead && m.sender === 'received' && m.channel === activeChannel).length,

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
   MessageSquare,
+  MessageCircle,
   Bell,
   BarChart3,
   Settings,
@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Trophy,
   Share2,
+  Workflow,
+  Headset,
 } from 'lucide-react';
 import { getCurrentUser, getLeads, getMessages, getReminders, clearAuth } from '../types/index';
 
@@ -26,15 +28,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
-  const [leadCount, setLeadCount] = useState(0);
-  const [unreadMessages, setUnreadMessages] = useState(0);
-  const [pendingReminders, setPendingReminders] = useState(0);
-
-  useEffect(() => {
-    setLeadCount(getLeads().length);
-    setUnreadMessages(getMessages().filter((m) => !m.isRead).length);
-    setPendingReminders(getReminders().filter((r) => !r.isCompleted).length);
-  }, []);
+  const leadCount = getLeads().length;
+  const unreadMessages = getMessages().filter((m) => !m.isRead).length;
+  const pendingReminders = getReminders().filter((r) => !r.isCompleted).length;
 
   const handleLogout = () => {
     clearAuth();
@@ -45,6 +41,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Users, label: 'Leads', path: '/leads', badge: leadCount },
     { icon: MessageSquare, label: 'Inbox', path: '/inbox', badge: unreadMessages },
+    { icon: MessageCircle, label: 'Comms', path: '/comms' },
     { icon: Bell, label: 'Reminders', path: '/reminders', badge: pendingReminders },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
   ];
@@ -54,6 +51,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     { icon: FolderOpen, label: 'Documents', path: '/documents' },
     { icon: Trophy, label: 'Leaderboard', path: '/leaderboard' },
     { icon: Share2, label: 'Social Media', path: '/social' },
+    { icon: Users, label: 'Team', path: '/team' },
+    { icon: Workflow, label: 'Workflows', path: '/workflows' },
+    { icon: Headset, label: 'Support', path: '/support' },
   ];
 
   const showSettings = user?.role === 'Admin' || user?.role === 'Manager';
