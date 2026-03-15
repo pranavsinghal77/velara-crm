@@ -23,7 +23,7 @@ import {
   ChevronRight,
   Bell,
 } from 'lucide-react';
-import { getLeads, getCurrentUser } from '../types/index';
+import { getLeads, getCurrentUser, getReminders, saveReminders } from '../types/index';
 import type { Lead } from '../types/index';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -113,6 +113,7 @@ function useTimer(running: boolean) {
 export default function Calling() {
   const leads = useMemo(() => getLeads(), []);
   getCurrentUser();
+  const [notice, setNotice] = useState('');
 
   // dialer
   const [dialNumber, setDialNumber] = useState('');
@@ -227,6 +228,68 @@ export default function Calling() {
     }
   }
 
+  function downloadTextFile(filename: string, content: string) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleExportLogs() {
+    const lines = [
+      'Velara Call Logs Export',
+      `Generated: ${new Date().toLocaleString()}`,
+      '',
+      ...filteredCalls.map((c) => `${c.date} | ${c.leadName} | ${c.phone} | ${c.direction.toUpperCase()} | ${c.duration} | ${c.callType}`),
+    ];
+    downloadTextFile('velara-call-logs.txt', lines.join('\n'));
+    setNotice(`Exported ${filteredCalls.length} call logs.`);
+  }
+
+  function handleDownloadTranscript(call: CallRecord) {
+    const transcriptBody = call.hasTranscript
+      ? TRANSCRIPT_LINES.map((line) => `[${line.time}] ${line.speaker}: ${line.text}`).join('\n')
+      : 'No full transcript was available for this call.\nAI summary and notes are still stored.';
+    downloadTextFile(`${call.leadName.replace(/\s+/g, '_')}_call_transcript.txt`, transcriptBody);
+    setNotice(`Transcript downloaded for ${call.leadName}.`);
+  }
+
+  function handleCreateReminderFromCall() {
+    if (!selectedCall) return;
+    const today = new Date();
+    const matchedLead = leads.find((lead) => lead.name === selectedCall.leadName);
+    const reminders = getReminders();
+    reminders.unshift({
+      id: `rem_${Date.now()}`,
+      leadId: matchedLead?.id ?? selectedCall.id,
+      leadName: selectedCall.leadName,
+      task: `Follow up on call with ${selectedCall.leadName}`,
+      dueDate: today.toISOString().slice(0, 10),
+      dueTime: '10:00',
+      isToday: true,
+      isTomorrow: false,
+      isCompleted: false,
+      priority: 'High',
+      type: 'AI-Generated',
+    });
+    saveReminders(reminders);
+    setNotice(`Reminder created for ${selectedCall.leadName}.`);
+  }
+
+  function handleSendEmailFromCall() {
+    if (!selectedCall) return;
+    const lead = leads.find((l) => l.name === selectedCall.leadName);
+    if (lead?.email) {
+      window.open(`mailto:${lead.email}?subject=Proposal Follow-up&body=Hi ${lead.name},%0D%0A%0D%0AAs discussed on call, sharing next steps.%0D%0A%0D%0ARegards,%0D%0AVelara Team`);
+      setNotice(`Opened email draft for ${lead.name}.`);
+      return;
+    }
+    setNotice('No lead email found for this contact.');
+  }
+
   function startPlayInterval() {
     setIsPlaying(true);
     playTimerRef.current = setInterval(() => {
@@ -243,6 +306,12 @@ export default function Calling() {
 
   return (
     <div className="space-y-6">
+      {notice ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
 
       {/* ═══ SECTION 1 — HEADER ═════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -264,7 +333,7 @@ export default function Calling() {
             <div className="w-2 h-2 bg-blue-500 rounded-full" />
             <span className="text-blue-700 text-sm font-medium">GSM Gateway</span>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition-colors">
+          <button onClick={handleExportLogs} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition-colors">
             <Download className="w-4 h-4" />
             Export Logs
           </button>
@@ -651,7 +720,7 @@ export default function Calling() {
                     <p className="text-xs text-gray-400">{selectedCall.date} · {selectedCall.duration}</p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><Download className="w-4 h-4" /></button>
+                    <button onClick={() => handleDownloadTranscript(selectedCall)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><Download className="w-4 h-4" /></button>
                     <button onClick={() => setSelectedCall(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
                   </div>
                 </div>
@@ -754,11 +823,11 @@ export default function Calling() {
                     Send formal proposal to rajesh.kumar@gmail.com by Friday. Schedule follow-up call for Monday 10 AM.
                   </p>
                   <div className="flex gap-2">
-                    <button className="flex-1 text-[11px] font-bold py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors flex items-center justify-center gap-1">
+                    <button onClick={handleCreateReminderFromCall} className="flex-1 text-[11px] font-bold py-2 rounded-lg bg-green-500 hover:bg-green-600 text-white transition-colors flex items-center justify-center gap-1">
                       <Bell className="w-3 h-3" />
                       Create Reminder
                     </button>
-                    <button className="flex-1 text-[11px] font-bold py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors flex items-center justify-center gap-1">
+                    <button onClick={handleSendEmailFromCall} className="flex-1 text-[11px] font-bold py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors flex items-center justify-center gap-1">
                       <ChevronRight className="w-3 h-3" />
                       Send Email
                     </button>

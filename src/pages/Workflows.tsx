@@ -43,6 +43,7 @@ const baseFlows: WorkflowItem[] = [
 export default function Workflows() {
   const leads = useMemo(() => getLeads(), []);
   const [flows, setFlows] = useState(baseFlows);
+  const [notice, setNotice] = useState('');
 
   const running = flows.filter((flow) => flow.state === 'Running').length;
   const generatedActions = flows.reduce((sum, flow) => sum + flow.runsToday, 0) * 3;
@@ -57,14 +58,33 @@ export default function Workflows() {
     );
   }
 
+  function createWorkflow() {
+    const next: WorkflowItem = {
+      id: `wf-${Date.now()}`,
+      name: 'Lead Revival Sprint',
+      trigger: 'No contact for 10 days and score between 45-70',
+      actions: ['Queue personalized WhatsApp opener', 'Schedule manager check-in', 'Send ROI one-pager'],
+      state: 'Paused',
+      runsToday: 0,
+    };
+    setFlows((current) => [next, ...current]);
+    setNotice('New workflow draft created. Configure and start when ready.');
+  }
+
   return (
     <div className="p-6 space-y-5">
+      {notice ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Workflow Studio</h1>
           <p className="text-sm text-gray-500">Automate follow-ups, prioritization, and handoffs with AI-first sequences.</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+        <button onClick={createWorkflow} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
           <Plus className="w-4 h-4" />
           New Workflow
         </button>

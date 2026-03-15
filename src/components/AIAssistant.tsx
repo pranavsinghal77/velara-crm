@@ -23,6 +23,14 @@ export default function AIAssistant() {
     setView('pro');
   };
 
+  useEffect(() => {
+    const openAssistant = () => setIsOpen(true);
+    window.addEventListener('velara:assistant-open', openAssistant as EventListener);
+    return () => {
+      window.removeEventListener('velara:assistant-open', openAssistant as EventListener);
+    };
+  }, []);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleSend();
   };

@@ -11,6 +11,13 @@ export default function Comms() {
 
   const [channel, setChannel] = useState<ChannelLabel>('All');
   const [query, setQuery] = useState('');
+  const [executedLeadIds, setExecutedLeadIds] = useState<string[]>([]);
+  const [notice, setNotice] = useState('');
+
+  function executeAction(leadId: string, leadName: string) {
+    setExecutedLeadIds((current) => (current.includes(leadId) ? current : [...current, leadId]));
+    setNotice(`AI next-best action queued for ${leadName}.`);
+  }
 
   const commRows = useMemo(() => {
     const list = leads.map((lead) => {
@@ -32,7 +39,10 @@ export default function Comms() {
         lead,
         byChannel,
         aiNextBestAction,
-        engagementIndex: Math.min(100, leadMsgs.length * 8 + lead.aiScore * 0.6),
+        engagementIndex: Math.min(
+          100,
+          leadMsgs.length * 8 + lead.aiScore * 0.6 + (executedLeadIds.includes(lead.id) ? 8 : 0),
+        ),
       };
     });
 
@@ -42,7 +52,7 @@ export default function Comms() {
       const queryOk = text.includes(query.toLowerCase());
       return channelOk && queryOk;
     });
-  }, [channel, leads, messages, query]);
+  }, [channel, executedLeadIds, leads, messages, query]);
 
   const totalTouches = commRows.reduce(
     (sum, row) => sum + row.byChannel.WhatsApp + row.byChannel.Email + row.byChannel.SMS + row.byChannel.Calling,
@@ -55,6 +65,12 @@ export default function Comms() {
 
   return (
     <div className="p-6 space-y-5">
+      {notice ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Comms Intelligence Hub</h1>
@@ -140,7 +156,15 @@ export default function Comms() {
                 <td className="px-4 py-3">
                   <div className="bg-violet-50 border border-violet-100 rounded-lg p-2 text-xs text-violet-800 flex gap-2">
                     <Sparkles className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    <span>{row.aiNextBestAction}</span>
+                    <div className="flex-1 space-y-2">
+                      <span className="block">{row.aiNextBestAction}</span>
+                      <button
+                        onClick={() => executeAction(row.lead.id, row.lead.name)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-md bg-violet-600 text-white hover:bg-violet-700 transition-colors"
+                      >
+                        {executedLeadIds.includes(row.lead.id) ? 'Queued' : 'Execute'}
+                      </button>
+                    </div>
                   </div>
                 </td>
               </tr>

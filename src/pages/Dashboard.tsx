@@ -21,6 +21,7 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 import { getLeads, getReminders, getUsers, getCurrentUser } from '../types/index';
 import type { Lead } from '../types/index';
 
@@ -111,9 +112,21 @@ const INSIGHT_CHIPS = [
 // ─── component ────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [notice, setNotice] = useState('');
   const leads = useMemo(() => getLeads(), []);
   const reminders = useMemo(() => getReminders(), []);
   const users = useMemo(() => getUsers(), []);
+
+  const handleViewInsights = () => {
+    navigate('/analytics');
+    setNotice('Opened Analytics to review all AI risk insights.');
+  };
+
+  const handleFollowUp = (leadName: string) => {
+    navigate('/reminders');
+    setNotice(`Opened Reminders to schedule follow-up for ${leadName}.`);
+  };
 
   // KPI counts
   const totalLeads = leads.length;
@@ -176,9 +189,17 @@ export default function Dashboard() {
   // Insight chips
   const insightChips = INSIGHT_CHIPS;
 
+  const clearNotice = () => setNotice('');
+
   return (
     <div className="space-y-6">
       <AIBriefing />
+      {notice ? (
+        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={clearNotice} className="font-semibold hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
       {/* ═══ KPI Cards ═══════════════════════════════════════ */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Leads */}
@@ -269,7 +290,7 @@ export default function Dashboard() {
               {chip}
             </span>
           ))}
-          <button className="text-xs text-white border border-white/50 px-3 py-1 rounded-full hover:bg-white/10 transition-colors flex items-center gap-1">
+          <button onClick={handleViewInsights} className="text-xs text-white border border-white/50 px-3 py-1 rounded-full hover:bg-white/10 transition-colors flex items-center gap-1">
             View All <ChevronRight size={14} />
           </button>
         </div>
@@ -373,7 +394,7 @@ export default function Dashboard() {
                       <span className="text-[10px] text-gray-400 w-14 text-right">
                         {days === 0 ? 'Today' : `${days}d ago`}
                       </span>
-                      <button className="text-[11px] font-medium text-[#2563EB] border border-[#2563EB] rounded-lg px-2 py-0.5 hover:bg-blue-50 transition-colors">
+                      <button onClick={() => handleFollowUp(lead.name)} className="text-[11px] font-medium text-[#2563EB] border border-[#2563EB] rounded-lg px-2 py-0.5 hover:bg-blue-50 transition-colors">
                         Follow Up
                       </button>
                     </div>

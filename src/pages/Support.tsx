@@ -48,7 +48,36 @@ const helpArticles = [
 
 export default function Support() {
   const [query, setQuery] = useState('');
-  const [tickets] = useState(initialTickets);
+  const [tickets, setTickets] = useState(initialTickets);
+  const [showCreate, setShowCreate] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [ticketTitle, setTicketTitle] = useState('');
+  const [ticketArea, setTicketArea] = useState('General');
+  const [ticketSeverity, setTicketSeverity] = useState<'High' | 'Medium' | 'Low'>('Medium');
+
+  function createTicket() {
+    if (!ticketTitle.trim()) {
+      setNotice('Please enter a ticket title first.');
+      return;
+    }
+    const nextNumber = 300 + tickets.length + 1;
+    setTickets((current) => [
+      {
+        id: `SUP-${nextNumber}`,
+        title: ticketTitle.trim(),
+        area: ticketArea,
+        severity: ticketSeverity,
+        status: 'Open',
+        owner: 'Support Queue',
+      },
+      ...current,
+    ]);
+    setShowCreate(false);
+    setTicketTitle('');
+    setTicketArea('General');
+    setTicketSeverity('Medium');
+    setNotice('New support ticket created and assigned to queue.');
+  }
 
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
@@ -59,12 +88,18 @@ export default function Support() {
 
   return (
     <div className="p-6 space-y-5">
+      {notice ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Support Command</h1>
           <p className="text-sm text-gray-500">Operational excellence desk for product, AI, and integration support.</p>
         </div>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+        <button onClick={() => setShowCreate(true)} className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
           <LifeBuoy className="w-4 h-4" />
           Raise Ticket
         </button>
@@ -160,6 +195,48 @@ export default function Support() {
           </p>
         </article>
       </div>
+
+      {showCreate ? (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-xl bg-white border border-gray-200 shadow-xl p-5 space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Create Support Ticket</h3>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Title</label>
+              <input
+                value={ticketTitle}
+                onChange={(e) => setTicketTitle(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Describe the issue"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Area</label>
+              <input
+                value={ticketArea}
+                onChange={(e) => setTicketArea(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. Inbox / Integrations"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-gray-600">Severity</label>
+              <select
+                value={ticketSeverity}
+                onChange={(e) => setTicketSeverity(e.target.value as 'High' | 'Medium' | 'Low')}
+                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option>High</option>
+                <option>Medium</option>
+                <option>Low</option>
+              </select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+              <button onClick={createTicket} className="px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700">Create Ticket</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -62,6 +62,7 @@ function fmt(v: number) {
 
 export default function Analytics() {
   const [range, setRange] = useState<Range>('30 Days');
+  const [showAllRisks, setShowAllRisks] = useState(false);
   const leads = useMemo<Lead[]>(() => getLeads(), []);
 
   // ── KPIs ──────────────────────────────────────────────────
@@ -230,9 +231,22 @@ export default function Analytics() {
                 </div>
               ))}
             </div>
-            <button className="mt-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
+            <button onClick={() => setShowAllRisks((prev) => !prev)} className="mt-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
               View All Risks →
             </button>
+            {showAllRisks ? (
+              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 space-y-1">
+                {leads
+                  .filter((lead) => lead.status !== 'Won' && lead.status !== 'Lost')
+                  .sort((a, b) => a.aiScore - b.aiScore)
+                  .slice(0, 5)
+                  .map((lead) => (
+                    <p key={lead.id} className="text-[11px] text-amber-900">
+                      {lead.name} ({lead.aiScore}) needs intervention.
+                    </p>
+                  ))}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Loader2,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { getLeads } from '../types/index';
 
 // ─── types ────────────────────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ function FileIcon({ type, size = 32 }: { type: FileType; size?: number }) {
 // ─── component ────────────────────────────────────────────────────────────────
 
 export default function Documents() {
+  const navigate = useNavigate();
   const leads = useMemo(() => getLeads(), []);
 
   const [docs, setDocs] = useState<Doc[]>(MOCK_DOCS);
@@ -92,7 +94,18 @@ export default function Documents() {
   const [uploadCategory, setUploadCategory] = useState<Exclude<DocCategory, 'All Documents'>>('Contracts');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadDone, setUploadDone] = useState(false);
+  const [notice, setNotice] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function downloadTextFile(filename: string, content: string) {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   // ── filtered grid ─────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -128,6 +141,27 @@ export default function Documents() {
   function handleDelete(id: string) {
     if (!confirm('Delete this document?')) return;
     setDocs((prev) => prev.filter((d) => d.id !== id));
+    setNotice('Document deleted.');
+  }
+
+  function handleDownloadDoc(doc: Doc) {
+    const lines = [
+      `Document: ${doc.name}`,
+      `Lead: ${doc.leadName || 'N/A'}`,
+      `Category: ${doc.category}`,
+      `Size: ${doc.size}`,
+      `Date: ${doc.date}`,
+      '',
+      'This is a generated CRM export summary for operational workflows.',
+    ];
+    downloadTextFile(`${doc.name}.txt`, lines.join('\n'));
+    setNotice(`Downloaded ${doc.name}.`);
+  }
+
+  function handleViewLeadDocs(leadName: string) {
+    setSearch(leadName);
+    setActiveCategory('All Documents');
+    setNotice(`Showing documents for ${leadName}.`);
   }
 
   // ── upload ────────────────────────────────────────────────
@@ -147,7 +181,30 @@ export default function Documents() {
     setUploadProgress(0);
     const iv = setInterval(() => {
       setUploadProgress((p) => {
-        if (p >= 100) { clearInterval(iv); setUploadDone(true); return 100; }
+        if (p >= 100) {
+          clearInterval(iv);
+          setUploadDone(true);
+          const lead = leads.find((l) => l.id === uploadLead);
+          const nextDoc: Doc = {
+            id: `d_${Date.now()}`,
+            name: uploadFile.name,
+            leadName: lead?.name ?? '—',
+            leadId: lead?.id ?? '',
+            size: `${(uploadFile.size / 1024 / 1024).toFixed(1)} MB`,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            category: uploadCategory,
+            fileType: uploadFile.name.toLowerCase().endsWith('.xlsx') || uploadFile.name.toLowerCase().endsWith('.xls')
+              ? 'xlsx'
+              : uploadFile.name.toLowerCase().endsWith('.doc') || uploadFile.name.toLowerCase().endsWith('.docx')
+              ? 'docx'
+              : uploadFile.type.startsWith('image/')
+              ? 'img'
+              : 'pdf',
+          };
+          setDocs((prev) => [nextDoc, ...prev]);
+          setNotice(`Uploaded ${uploadFile.name} successfully.`);
+          return 100;
+        }
         return p + 20;
       });
     }, 200);
@@ -160,6 +217,7 @@ export default function Documents() {
     setUploadCategory('Contracts');
     setUploadProgress(0);
     setUploadDone(false);
+    setNotice('');
   }
 
   // ── render ────────────────────────────────────────────────
@@ -178,6 +236,12 @@ export default function Documents() {
           <Upload size={16} /> Upload Document
         </button>
       </div>
+      {notice ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
+          <span>{notice}</span>
+          <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
 
       {/* ═══ STAT CARDS ══════════════════════════════════════ */}
       <div className="grid grid-cols-4 gap-4">
@@ -236,7 +300,7 @@ export default function Documents() {
                     {l.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
                   </div>
                   <span className="flex-1 text-sm font-medium text-gray-700 truncate">{l.name}</span>
-                  <button className="text-[10px] font-semibold text-blue-600 hover:underline shrink-0">View</button>
+                  <button onClick={() => handleViewLeadDocs(l.name)} className="text-[10px] font-semibold text-blue-600 hover:underline shrink-0">View</button>
                 </div>
               ))}
             </div>
@@ -276,7 +340,7 @@ export default function Documents() {
                     <button onClick={() => openExtract(doc)} className="flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 transition-colors flex-1 justify-center">
                       <Sparkles size={11} /> AI Extract
                     </button>
-                    <button className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"><Download size={13} /></button>
+                    <button onClick={() => handleDownloadDoc(doc)} className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"><Download size={13} /></button>
                     <button onClick={() => handleDelete(doc.id)} className="p-1.5 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"><Trash2 size={13} /></button>
                   </div>
                 </div>
@@ -354,8 +418,37 @@ export default function Documents() {
             {extracted && (
               <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100">
                 <button onClick={closeExtract} className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Close</button>
-                <button className="px-4 py-2 text-sm font-semibold text-white bg-[#7C3AED] rounded-lg hover:bg-purple-700 transition-colors">Save to Lead Profile</button>
-                <button className="px-4 py-2 text-sm font-semibold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors">Download Summary</button>
+                <button
+                  onClick={() => {
+                    closeExtract();
+                    if (extractDoc?.leadId) {
+                      navigate('/leads');
+                    }
+                    setNotice(`AI extraction linked for ${extractDoc?.leadName ?? 'selected lead'}.`);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-[#7C3AED] rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  Save to Lead Profile
+                </button>
+                <button
+                  onClick={() => {
+                    downloadTextFile(
+                      `${extractDoc?.name ?? 'document'}_summary.txt`,
+                      [
+                        `Summary for ${extractDoc?.name ?? 'Document'}`,
+                        'Document Type: Service Contract',
+                        'Party Name: Kumar Enterprises',
+                        'Contract Value: ₹5,00,000',
+                        'Status: Valid & Active',
+                        'AI Confidence: 96%',
+                      ].join('\n'),
+                    );
+                    setNotice('Summary downloaded.');
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-[#2563EB] rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Download Summary
+                </button>
               </div>
             )}
           </div>

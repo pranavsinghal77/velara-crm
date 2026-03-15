@@ -25,6 +25,7 @@ const pageTitles: Record<string, string> = {
 export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [notice, setNotice] = useState('');
   const [user] = useState(() => getCurrentUser());
   const [unreadCount] = useState(() => getNotifications().filter((n) => !n.isRead).length);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -46,6 +47,20 @@ export default function Layout() {
     navigate('/login');
   };
 
+  const openAssistant = () => {
+    window.dispatchEvent(new CustomEvent('velara:assistant-open'));
+    setNotice('Velara AI assistant opened.');
+  };
+
+  const openNotifications = () => {
+    if (unreadCount > 0) {
+      navigate('/support');
+      setNotice(`Redirected to Support Command with ${unreadCount} pending alerts.`);
+      return;
+    }
+    setNotice('No unread alerts at the moment.');
+  };
+
   // Close dropdown on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -56,6 +71,12 @@ export default function Layout() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(''), 2400);
+    return () => clearTimeout(id);
+  }, [notice]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,7 +106,7 @@ export default function Layout() {
           </div>
 
           {/* Notification bell */}
-          <button className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+          <button onClick={openNotifications} className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
             <Bell className="w-5 h-5 text-gray-600" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
@@ -95,7 +116,7 @@ export default function Layout() {
           </button>
 
           {/* AI Assistant button */}
-          <button className="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm font-medium flex-shrink-0 border border-purple-200">
+          <button onClick={openAssistant} className="flex items-center gap-2 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors text-sm font-medium flex-shrink-0 border border-purple-200">
             <Sparkles className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline">Velara AI</span>
           </button>
@@ -143,6 +164,12 @@ export default function Layout() {
           paddingTop: '64px',
         }}
       >
+        {notice ? (
+          <div className="mx-6 mt-3 rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs font-medium text-blue-700">
+            {notice}
+          </div>
+        ) : null}
+
         {/* ── Page content ──────────────────────────────────── */}
         <div className="p-6">
           <Outlet />
