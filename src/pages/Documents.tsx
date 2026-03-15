@@ -46,6 +46,21 @@ const MOCK_DOCS: Doc[] = [
   { id: 'd7', name: 'Arjun_Mehta_Contract.pdf',         leadName: 'Arjun Mehta',   leadId: 'lead_5',  size: '2.1 MB', date: 'Mar 02, 2026', category: 'Contracts',     fileType: 'pdf'  },
   { id: 'd8', name: 'Team_Performance_Q1.xlsx',         leadName: '—',             leadId: '',        size: '1.8 MB', date: 'Mar 01, 2026', category: 'Reports',       fileType: 'xlsx' },
   { id: 'd9', name: 'Anita_Desai_KYC.pdf',              leadName: 'Anita Desai',   leadId: 'lead_6',  size: '0.7 MB', date: 'Feb 28, 2026', category: 'KYC Documents', fileType: 'pdf'  },
+  { id: 'd10', name: 'Rajesh_Kumar_Onboarding_Form.pdf', leadName: 'Rajesh Kumar', leadId: 'lead_1',  size: '0.6 MB', date: 'Feb 27, 2026', category: 'KYC Documents', fileType: 'pdf'  },
+  { id: 'd11', name: 'Rajesh_Kumar_Pricing_Revision.pdf', leadName: 'Rajesh Kumar', leadId: 'lead_1',  size: '1.2 MB', date: 'Feb 25, 2026', category: 'Proposals',     fileType: 'pdf'  },
+  { id: 'd12', name: 'Priya_Sharma_MSA.docx',            leadName: 'Priya Sharma', leadId: 'lead_2',  size: '1.0 MB', date: 'Feb 24, 2026', category: 'Contracts',     fileType: 'docx' },
+  { id: 'd13', name: 'Priya_Sharma_KYC_ID.pdf',          leadName: 'Priya Sharma', leadId: 'lead_2',  size: '0.5 MB', date: 'Feb 22, 2026', category: 'KYC Documents', fileType: 'pdf'  },
+  { id: 'd14', name: 'Amit_Patel_Proposal_V2.pdf',       leadName: 'Amit Patel',   leadId: 'lead_3',  size: '1.4 MB', date: 'Feb 21, 2026', category: 'Proposals',     fileType: 'pdf'  },
+  { id: 'd15', name: 'Amit_Patel_Address_Proof.pdf',     leadName: 'Amit Patel',   leadId: 'lead_3',  size: '0.4 MB', date: 'Feb 20, 2026', category: 'KYC Documents', fileType: 'pdf'  },
+  { id: 'd16', name: 'Sunita_Verma_Service_Agreement.docx', leadName: 'Sunita Verma', leadId: 'lead_4', size: '1.3 MB', date: 'Feb 19, 2026', category: 'Contracts', fileType: 'docx' },
+  { id: 'd17', name: 'Sunita_Verma_Invoice_Terms.pdf',   leadName: 'Sunita Verma', leadId: 'lead_4',  size: '0.8 MB', date: 'Feb 18, 2026', category: 'Other',         fileType: 'pdf'  },
+  { id: 'd18', name: 'Arjun_Mehta_Proposal_Annexure.pdf', leadName: 'Arjun Mehta', leadId: 'lead_5',  size: '1.7 MB', date: 'Feb 17, 2026', category: 'Proposals',     fileType: 'pdf'  },
+  { id: 'd19', name: 'Arjun_Mehta_GST_Certificate.pdf',  leadName: 'Arjun Mehta',  leadId: 'lead_5',  size: '0.5 MB', date: 'Feb 15, 2026', category: 'KYC Documents', fileType: 'pdf'  },
+  { id: 'd20', name: 'Anita_Desai_Contract_Amendment.docx', leadName: 'Anita Desai', leadId: 'lead_6', size: '1.1 MB', date: 'Feb 14, 2026', category: 'Contracts',   fileType: 'docx' },
+  { id: 'd21', name: 'Anita_Desai_Proposal_Deck.pdf',    leadName: 'Anita Desai',  leadId: 'lead_6',  size: '1.6 MB', date: 'Feb 13, 2026', category: 'Proposals',     fileType: 'pdf'  },
+  { id: 'd22', name: 'Rajesh_Kumar_QBR_Report_Q1.xlsx',  leadName: 'Rajesh Kumar', leadId: 'lead_1',  size: '2.0 MB', date: 'Feb 12, 2026', category: 'Reports',       fileType: 'xlsx' },
+  { id: 'd23', name: 'Priya_Sharma_QBR_Report_Q1.xlsx',  leadName: 'Priya Sharma', leadId: 'lead_2',  size: '1.9 MB', date: 'Feb 11, 2026', category: 'Reports',       fileType: 'xlsx' },
+  { id: 'd24', name: 'Sunita_Verma_QBR_Report_Q1.xlsx',  leadName: 'Sunita Verma', leadId: 'lead_4',  size: '1.9 MB', date: 'Feb 10, 2026', category: 'Reports',       fileType: 'xlsx' },
 ];
 
 const CATEGORIES: { label: DocCategory; emoji: string; count: number }[] = [
