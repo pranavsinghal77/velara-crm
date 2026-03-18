@@ -1,6 +1,7 @@
 # Velara CRM — AI-First CRM for Indian Businesses
 
 > **The CRM that thinks, feels, and acts for you.**
+> https://velara-crm.vercel.app/login
 
 [![React](https://img.shields.io/badge/React-19-blue?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript)](https://www.typescriptlang.org)
