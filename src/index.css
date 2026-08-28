@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  --text-strong: #0f172a; /* Slate 900 */
+  --text-soft: #475569; /* Slate 600 */
+  
+  /* Premium Glassmorphism Background */
+  --bg-gradient: radial-gradient(circle at 15% 10%, rgba(224, 231, 255, 0.5), transparent 40%),
+                 radial-gradient(circle at 85% 90%, rgba(241, 245, 249, 0.8), transparent 40%),
+                 linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+body[data-theme='mist'] {
+  --bg-gradient: radial-gradient(circle at 20% 0%, rgba(186, 230, 253, 0.3), transparent 50%),
+                 linear-gradient(160deg, #f0f9ff 0%, #f8fafc 100%);
+}
+
+body[data-theme='sunset'] {
+  --bg-gradient: radial-gradient(circle at 10% 20%, rgba(255, 237, 213, 0.4), transparent 40%),
+                 linear-gradient(160deg, #fff7ed 0%, #fafaf9 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-strong);
+}
+
+/* ── Enterprise UI Utilities ── */
+
+.glass-panel {
+  @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-sm;
+}
+
+.glass-panel-dark {
+  @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-xl;
+}
+
+.card-hover {
+  @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-blue-200;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl shadow-md shadow-blue-500/20 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all;
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

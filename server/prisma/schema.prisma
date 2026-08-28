@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String   @default("password123")
+  avatar    String?
+  role      String   @default("Sales")
+  status    String   @default("Offline")
+  isActive  Boolean  @default(true)
+  permissions String[] @default([])
+  
+  // Relations
+  leads     Lead[]
+  messages  Message[]
+  reminders Reminder[]
+  notifications Notification[]
+  fieldTasks FieldTask[]
+}
+
+model Lead {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String   @default("")
+  email       String
+  source      String   @default("Website")
+  status      String   @default("New")
+  aiScore     Int      @default(50)
+  aiScoreBreakdown Json?
+  lastContact String   @default("")
+  isHot       Boolean  @default(false)
+  tags        String[] @default([])
+  notes       String   @default("")
+  assignedTo  String   @default("")
+  createdAt   String   @default("")
+  company     String?
+  designation String?
+  city        String?
+  budget      String?
+  
+  // Legacy fields for backward compat
+  value       Float    @default(0)
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  leadId      String   @default("")
+  content     String
+  sender      String
+  timestamp   DateTime @default(now())
+  isRead      Boolean  @default(false)
+  isAISuggested Boolean @default(false)
+  isInternal  Boolean  @default(false)
+  
+  // Omnichannel
+  channel     String   @default("Email")
+  intent      String?
+  urgency     String?
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  leadId      String   @default("")
+  leadName    String   @default("")
+  task        String   @default("")
+  dueDate     String   @default("")
+  dueTime     String   @default("")
+  isToday     Boolean  @default(false)
+  isTomorrow  Boolean  @default(false)
+  isCompleted Boolean  @default(false)
+  priority    String   @default("Medium")
+  type        String   @default("Manual")
+  
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  title     String
+  message   String
+  type      String
+  timestamp DateTime @default(now())
+  isRead    Boolean  @default(false)
+  
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model FieldCampaign {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  startDate   DateTime @default(now())
+  endDate     DateTime
+  budget      Float    @default(0)
+  status      String   @default("Active")
+  
+  tasks       FieldTask[]
+}
+
+model FieldTask {
+  id              String   @id @default(uuid())
+  title           String
+  location        String
+  status          String   @default("Pending")
+  uploadedImageUrl String?
+  aiComplianceScore Float?
+  aiFeedback      String?
+  
+  campaignId      String
+  campaign        FieldCampaign @relation(fields: [campaignId], references: [id])
+  
+  assignedToId    String?
+  assignedTo      User?         @relation(fields: [assignedToId], references: [id])
+}
