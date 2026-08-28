@@ -15,7 +15,7 @@
 
 Velara CRM is an **AI-First Customer Relationship Management** platform built specifically for Indian businesses and SMBs. Unlike traditional CRMs that bolt AI on as an afterthought, Velara is designed with AI as its operating system — automating admin, surfacing emotional context, and acting autonomously so your team can focus on building real relationships.
 
-**Built for the Mattr Platform | March 2026**
+**March 2026**
 
 ---
 
