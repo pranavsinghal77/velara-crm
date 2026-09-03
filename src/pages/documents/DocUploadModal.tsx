@@ -17,7 +17,7 @@ interface DocUploadModalProps {
   uploadDone: boolean;
   handleFileDrop: (e: React.DragEvent) => void;
   handleFileInput: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleUpload: () => void;
   leads: Lead[];
 }

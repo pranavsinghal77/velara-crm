@@ -1,18 +1,3 @@
-
-
-export function loadJson<T>(key: string, def: T): T {
-  try {
-    const r = localStorage.getItem(key);
-    return r ? (JSON.parse(r) as T) : def;
-  } catch {
-    return def;
-  }
-}
-
-export function saveJson(key: string, v: unknown) {
-  localStorage.setItem(key, JSON.stringify(v));
-}
-
 export function Toggle({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
     <button

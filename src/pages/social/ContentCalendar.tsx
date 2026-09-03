@@ -1,7 +1,8 @@
-import { Clock, CalendarDays, ChevronLeft, ChevronRight, Edit2, Trash2, X, Calendar } from 'lucide-react';
+import { Clock, CalendarDays, ChevronLeft, ChevronRight, Edit2, Trash2, X } from 'lucide-react';
 import { POST_DATES, CAL_DAYS, TODAY } from './types';
 import type { Platform, ScheduledPost } from './types';
-import { PLATFORM_CONFIG, PlatformIcon, PlatformBadge } from './shared';
+import { PlatformIcon, PlatformBadge } from './shared';
+import { PLATFORM_CONFIG } from './platforms';
 
 interface ContentCalendarProps {
   scheduledList: ScheduledPost[];

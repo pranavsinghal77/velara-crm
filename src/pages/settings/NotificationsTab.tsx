@@ -1,18 +1,9 @@
 import { useState } from 'react';
 
 import { Bell, MessageSquare, Mail, Phone, Sparkles, Flame, Clock, Trophy, TrendingDown, Calendar } from 'lucide-react';
-import { Toggle, loadJson, saveJson } from './shared';
-
-export interface NotifSettings {
-  whatsapp: boolean; email: boolean; sms: boolean; browser: boolean; callNotif: boolean; aiInsights: boolean;
-  hotLead: boolean; followUpReminder: boolean; reminderBefore: string; dealWon: boolean; churnRisk: boolean; dailySummary: boolean;
-}
-
-export const NOTIF_DEF: NotifSettings = {
-  whatsapp: true, email: true, sms: false, browser: true, callNotif: true, aiInsights: true,
-  hotLead: true, followUpReminder: true, reminderBefore: '1 hour', dealWon: true,
-  churnRisk: true, dailySummary: true,
-};
+import { Toggle } from './shared';
+import { loadJson, saveJson } from './storage';
+import { NOTIF_DEF, type NotifSettings } from './defaults';
 
 export default function NotificationsTab() {
   const [notif, setNotif] = useState<NotifSettings>(() => loadJson('velara_notifications', NOTIF_DEF));

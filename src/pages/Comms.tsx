@@ -1,19 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  MessageSquare,
-  Mail,
-  Phone,
-  Sparkles,
-  Filter,
-  SendHorizontal,
-  Bot,
-  Search,
-  CheckCircle2,
-  ArrowRight,
-  TrendingUp,
-  Flame,
-  Zap,
-} from 'lucide-react';
+import { MessageSquare, Mail, Phone, Sparkles, SendHorizontal, Bot, Search, CheckCircle2, TrendingUp, Flame } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 const CHANNEL_LABELS = ['WhatsApp', 'Email', 'SMS', 'Calling'] as const;

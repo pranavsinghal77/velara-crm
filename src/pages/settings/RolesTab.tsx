@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import { AlertCircle, CheckCircle2, Check } from 'lucide-react';
-import { loadJson, saveJson } from './shared';
+import { loadJson, saveJson } from './storage';
 
 const ROLE_BADGE: Record<string, string> = {
   Admin: 'bg-purple-100 text-purple-700',

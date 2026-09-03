@@ -1,20 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Users,
-  Target,
-  TrendingUp,
-  Brain,
-  Mail,
-  Phone,
-  Star,
-  ShieldCheck,
-  Building,
-  CheckCircle2,
-  Clock,
-  Sparkles,
-  MessageSquare,
-  IndianRupee,
-} from 'lucide-react';
+import { TrendingUp, Building, CheckCircle2, Sparkles } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 function initials(name: string) {

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Bell, Search, Sparkles, LogOut, Command } from 'lucide-react';
+import { Bell, Search, Sparkles, LogOut } from 'lucide-react';
 import Sidebar from './Sidebar';
 import AIAssistant from './AIAssistant';
 import CommandPalette from './CommandPalette';
@@ -211,7 +211,9 @@ export default function Layout() {
       <AIAssistant />
 
       {/* ── Universal Command Palette (Ctrl+K) ────────────── */}
-      <CommandPalette isOpen={showCmdPalette} onClose={() => setShowCmdPalette(false)} />
+      {/* Mounted only while open, so its query and selection reset naturally
+          instead of being cleared by an effect on every toggle. */}
+      {showCmdPalette && <CommandPalette onClose={() => setShowCmdPalette(false)} />}
     </div>
   );
 }

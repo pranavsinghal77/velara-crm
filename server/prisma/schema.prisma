@@ -1,5 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Velara CRM - data model
+//
+// Design notes:
+//  * Every tenant-owned row carries `orgId`. All queries are scoped by it via
+//    the request's authenticated org; there is no code path that reads across
+//    organisations.
+//  * Dates are real `DateTime` columns (not strings) so they can be indexed,
+//    sorted and range-queried. The API layer serialises them into the
+//    `YYYY-MM-DD` / `HH:mm` shape the UI expects.
+//  * Passwords are never stored, only a bcrypt hash of them.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,124 +17,258 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String   @default("password123")
-  avatar    String?
-  role      String   @default("Sales")
-  status    String   @default("Offline")
-  isActive  Boolean  @default(true)
-  permissions String[] @default([])
-  
-  // Relations
-  leads     Lead[]
-  messages  Message[]
-  reminders Reminder[]
-  notifications Notification[]
-  fieldTasks FieldTask[]
+// --- Enums ------------------------------------------------------------------
+
+enum Role {
+  Admin
+  Manager
+  Sales
+  Viewer
 }
 
+enum LeadStatus {
+  New
+  Contacted
+  Qualified
+  Negotiation
+  Won
+  Lost
+}
+
+enum Priority {
+  High
+  Medium
+  Low
+}
+
+enum MessageDirection {
+  sent
+  received
+}
+
+// --- Tenancy ----------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  leads         Lead[]
+  messages      Message[]
+  reminders     Reminder[]
+  notifications Notification[]
+  campaigns     FieldCampaign[]
+  fieldTasks    FieldTask[]
+}
+
+// --- Identity ---------------------------------------------------------------
+
+model User {
+  id           String    @id @default(uuid())
+  orgId        String
+  name         String
+  email        String    @unique
+  passwordHash String
+  avatar       String?
+  role         Role      @default(Sales)
+  isActive     Boolean   @default(true)
+  permissions  String[]  @default([])
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ownedLeads    Lead[]
+  messages      Message[]
+  reminders     Reminder[]
+  notifications Notification[]
+  fieldTasks    FieldTask[]
+  refreshTokens RefreshToken[]
+
+  @@index([orgId])
+  @@index([orgId, isActive])
+}
+
+/// Refresh tokens are stored as SHA-256 hashes so a database leak cannot be
+/// replayed as a live session. Rotation revokes the previous row.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// --- CRM core ---------------------------------------------------------------
+
 model Lead {
-  id          String   @id @default(uuid())
-  name        String
-  phone       String   @default("")
-  email       String
-  source      String   @default("Website")
-  status      String   @default("New")
-  aiScore     Int      @default(50)
+  id               String     @id @default(uuid())
+  orgId            String
+  name             String
+  phone            String     @default("")
+  email            String
+  source           String     @default("Website")
+  status           LeadStatus @default(New)
+  aiScore          Int        @default(50)
   aiScoreBreakdown Json?
-  lastContact String   @default("")
-  isHot       Boolean  @default(false)
-  tags        String[] @default([])
-  notes       String   @default("")
-  assignedTo  String   @default("")
-  createdAt   String   @default("")
-  company     String?
-  designation String?
-  city        String?
-  budget      String?
-  
-  // Legacy fields for backward compat
-  value       Float    @default(0)
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  isHot            Boolean    @default(false)
+  tags             String[]   @default([])
+  notes            String     @default("")
+  company          String?
+  designation      String?
+  city             String?
+  /// Free-text budget as entered by sales, e.g. "3.5L".
+  budget           String?
+  /// Normalised budget in INR lakhs, derived from `budget` on write so the
+  /// database can aggregate pipeline value without parsing strings.
+  budgetLakhs      Float      @default(0)
+  lastContactAt    DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  ownerId String?
+  owner   User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  reminders Reminder[]
+
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@index([orgId, isHot])
+  @@index([orgId, ownerId])
+  @@index([orgId, email])
 }
 
 model Message {
-  id          String   @id @default(uuid())
-  leadId      String   @default("")
-  content     String
-  sender      String
-  timestamp   DateTime @default(now())
-  isRead      Boolean  @default(false)
-  isAISuggested Boolean @default(false)
-  isInternal  Boolean  @default(false)
-  
-  // Omnichannel
-  channel     String   @default("Email")
-  intent      String?
-  urgency     String?
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  id            String           @id @default(uuid())
+  orgId         String
+  leadId        String?
+  content       String
+  direction     MessageDirection
+  sentAt        DateTime         @default(now())
+  isRead        Boolean          @default(false)
+  isAISuggested Boolean          @default(false)
+  isInternal    Boolean          @default(false)
+  channel       String           @default("Email")
+  intent        String?
+  urgency       String?
+  createdAt     DateTime         @default(now())
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sentAt])
+  @@index([orgId, leadId, sentAt])
+  @@index([orgId, isRead])
 }
 
 model Reminder {
-  id          String   @id @default(uuid())
-  leadId      String   @default("")
-  leadName    String   @default("")
-  task        String   @default("")
-  dueDate     String   @default("")
-  dueTime     String   @default("")
-  isToday     Boolean  @default(false)
-  isTomorrow  Boolean  @default(false)
-  isCompleted Boolean  @default(false)
-  priority    String   @default("Medium")
-  type        String   @default("Manual")
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  id          String    @id @default(uuid())
+  orgId       String
+  leadId      String?
+  /// Denormalised for display; kept in sync when a lead is renamed.
+  leadName    String    @default("")
+  task        String
+  /// Single source of truth for scheduling. `isToday` / `isTomorrow` are
+  /// computed at read time from this instant, never stored, so they cannot
+  /// go stale overnight.
+  dueAt       DateTime
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  priority    Priority  @default(Medium)
+  type        String    @default("Manual")
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId String?
+  owner   User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, dueAt])
+  @@index([orgId, isCompleted, dueAt])
+  @@index([orgId, ownerId])
 }
 
 model Notification {
   id        String   @id @default(uuid())
+  orgId     String
   title     String
   message   String
   type      String
-  timestamp DateTime @default(now())
   isRead    Boolean  @default(false)
-  
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  /// Null means broadcast to the whole organisation.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([orgId, userId, isRead])
 }
+
+// --- Field operations -------------------------------------------------------
 
 model FieldCampaign {
   id          String   @id @default(uuid())
+  orgId       String
   name        String
   description String?
   startDate   DateTime @default(now())
   endDate     DateTime
   budget      Float    @default(0)
   status      String   @default("Active")
-  
-  tasks       FieldTask[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tasks FieldTask[]
+
+  @@index([orgId, startDate])
 }
 
 model FieldTask {
-  id              String   @id @default(uuid())
-  title           String
-  location        String
-  status          String   @default("Pending")
-  uploadedImageUrl String?
+  id                String   @id @default(uuid())
+  orgId             String
+  campaignId        String
+  title             String
+  location          String
+  status            String   @default("Pending")
+  uploadedImageUrl  String?
   aiComplianceScore Float?
-  aiFeedback      String?
-  
-  campaignId      String
-  campaign        FieldCampaign @relation(fields: [campaignId], references: [id])
-  
-  assignedToId    String?
-  assignedTo      User?         @relation(fields: [assignedToId], references: [id])
+  aiFeedback        String?
+  /// False when a compliance verdict could not actually be computed (e.g. the
+  /// AI provider was unavailable), so the UI never shows an unverified task
+  /// as passing.
+  aiVerified        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  org      Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign FieldCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, campaignId])
+  @@index([orgId, assignedToId])
 }

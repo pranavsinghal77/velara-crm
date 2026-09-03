@@ -1,23 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Camera,
-  MapPin,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Play,
-  Calendar,
-  Laptop,
-  Home,
-  Briefcase,
-  FileText,
-  Coffee,
-  Check,
-  ChevronRight,
-  TrendingUp,
-  ShieldCheck,
-  Building,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, MapPin, CheckCircle, Clock, AlertTriangle, Laptop, Home, Briefcase, FileText, Coffee } from 'lucide-react';
 import TaskUploader from './field-ops/TaskUploader';
 
 // Mock Data
@@ -49,8 +31,8 @@ const MONTHS = ['AUG', 'JUL', 'JUN', 'MAY', 'APR', 'MAR', 'FEB'];
 export default function FieldOps() {
   const [activeTab, setActiveTab] = useState<'Attendance' | 'Tasks' | 'Campaigns'>('Attendance');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [complianceNotice, setComplianceNotice] = useState('');
   const [clockedIn, setClockedIn] = useState(true);
-  const [clockInTime, setClockInTime] = useState('09:58 AM');
   const [activeMonth, setActiveMonth] = useState('AUG');
   const [is24Hour, setIs24Hour] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -83,6 +65,23 @@ export default function FieldOps() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
+      {/* Verdict from the last visual compliance check. Only ever set from a
+          real analysis result, so a failed AI call shows nothing here. */}
+      {complianceNotice && (
+        <div
+          role="status"
+          className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl"
+        >
+          <span className="text-sm text-blue-800 flex-1">{complianceNotice}</span>
+          <button
+            onClick={() => setComplianceNotice('')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ═══ KEKA-STYLE SUB-NAV HEADER ════════════════════════ */}
       <div className="bg-slate-900 text-white rounded-2xl p-4 border border-slate-800 shadow-xl flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
@@ -402,8 +401,12 @@ export default function FieldOps() {
         <TaskUploader
           taskId={selectedTask}
           onClose={() => setSelectedTask(null)}
-          onSuccess={() => {
-            setSelectedTask(null);
+          onSuccess={(result) => {
+            setComplianceNotice(
+              result.passed
+                ? `Verified: ${result.feedback}`
+                : `Rejected: ${result.feedback}`
+            );
           }}
         />
       )}

@@ -49,15 +49,15 @@ export default function CallIntelligence({ selectedCall, setSelectedCall, leads 
   function handleCreateReminderFromCall() {
     if (!selectedCall) return;
     const matchedLead = leads.find((lead) => lead.name === selectedCall.leadName);
-    addReminder({
-      id: `rem_${Date.now()}`,
-      leadId: matchedLead?.id ?? selectedCall.id,
+    // The id and the isToday/isTomorrow flags are the server's to decide:
+    // the id comes back from the insert, and the flags are derived from the
+    // due date at read time so they cannot go stale.
+    void addReminder({
+      leadId: matchedLead?.id ?? '',
       leadName: selectedCall.leadName,
       task: `Follow up on call with ${selectedCall.leadName}`,
       dueDate: new Date().toISOString().slice(0, 10),
       dueTime: '10:00',
-      isToday: true,
-      isTomorrow: false,
       isCompleted: false,
       priority: 'High',
       type: 'AI-Generated',

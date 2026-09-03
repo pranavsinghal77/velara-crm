@@ -1,7 +1,8 @@
 import { BarChart3, TrendingUp, Clock, Heart, MessageCircle, Repeat2, Eye } from 'lucide-react';
 import { PLATFORM_ANALYTICS, FILTERS, MAX_FOLLOWERS } from './types';
 import type { FeedPost, FeedFilter } from './types';
-import { PLATFORM_CONFIG, PlatformIcon } from './shared';
+import { PlatformIcon } from './shared';
+import { PLATFORM_CONFIG } from './platforms';
 
 interface PostAnalyticsProps {
   feedFilter: FeedFilter;

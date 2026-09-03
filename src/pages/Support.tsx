@@ -1,18 +1,6 @@
 import { useMemo, useState } from 'react';
-import {
-  Sparkles,
-  Search,
-  CheckCircle2,
-  AlertTriangle,
-  LifeBuoy,
-  MessageCircle,
-  Zap,
-  ShieldAlert,
-  X,
-  Copy,
-  Check,
-  BookOpen,
-} from 'lucide-react';
+import { ApiError, api } from '../lib/api';
+import { Sparkles, Search, CheckCircle2, AlertTriangle, LifeBuoy, Zap, X, BookOpen } from 'lucide-react';
 
 type TicketStatus = 'Open' | 'Investigating' | 'Resolved';
 
@@ -80,6 +68,24 @@ const initialTickets: Ticket[] = [
   },
 ];
 
+interface EscalationDossier {
+  tierName: string;
+  executiveBrief: string;
+  rootCause: string;
+  recommendedAction: string;
+  readyToReply: string;
+  keyFacts: string[];
+  urgency: 'Medium' | 'High' | 'Critical';
+}
+
+interface RagAnswer {
+  answer: string;
+  citations: string[];
+  confidence: number;
+  suggestedFollowUp: string | null;
+  answeredFromContext: boolean;
+}
+
 export default function Support() {
   const [query, setQuery] = useState('');
   const [tickets, setTickets] = useState(initialTickets);
@@ -92,14 +98,15 @@ export default function Support() {
 
   // Escalation Dossier State
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
-  const [dossier, setDossier] = useState<any>(null);
+  const [dossier, setDossier] = useState<EscalationDossier | null>(null);
   const [isDossierLoading, setIsDossierLoading] = useState(false);
   const [showDossierModal, setShowDossierModal] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // RAG Query State
   const [ragQuery, setRagQuery] = useState('');
-  const [ragAnswer, setRagAnswer] = useState<any>(null);
+  const [ragAnswer, setRagAnswer] = useState<RagAnswer | null>(null);
+  const [aiError, setAiError] = useState('');
   const [isRagLoading, setIsRagLoading] = useState(false);
 
   function createTicket() {
@@ -133,24 +140,24 @@ export default function Support() {
     setActiveTicket(ticket);
     setShowDossierModal(true);
     setIsDossierLoading(true);
+    setAiError('');
     try {
-      const res = await fetch('http://localhost:3001/api/ai/escalate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadName: ticket.client,
-          company: ticket.client,
-          budget: '₹4L',
-          targetTier: ticket.tierNum,
-          messages: [{ sender: 'received', content: ticket.title }],
-        }),
+      const data = await api.post<EscalationDossier>('/ai/escalate', {
+        leadName: ticket.client,
+        company: ticket.client,
+        targetTier: ticket.tierNum,
+        messages: [{ sender: 'received', content: ticket.title }],
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDossier(data);
-      }
-    } catch (e) {
-      console.error(e);
+      setDossier(data);
+    } catch (err) {
+      setDossier(null);
+      setAiError(
+        err instanceof ApiError && err.status === 503
+          ? 'AI escalation is unavailable right now. No dossier was generated.'
+          : err instanceof ApiError
+            ? err.message
+            : 'Could not generate the dossier. Please try again.'
+      );
     } finally {
       setIsDossierLoading(false);
     }
@@ -159,18 +166,21 @@ export default function Support() {
   async function handleRagSearch() {
     if (!ragQuery.trim()) return;
     setIsRagLoading(true);
+    setAiError('');
     try {
-      const res = await fetch('http://localhost:3001/api/ai/knowledge-query', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: ragQuery.trim() }),
+      const data = await api.post<RagAnswer>('/ai/knowledge-query', {
+        query: ragQuery.trim(),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setRagAnswer(data);
-      }
-    } catch (e) {
-      console.error(e);
+      setRagAnswer(data);
+    } catch (err) {
+      setRagAnswer(null);
+      setAiError(
+        err instanceof ApiError && err.status === 503
+          ? 'The knowledge assistant is unavailable right now.'
+          : err instanceof ApiError
+            ? err.message
+            : 'Could not search the knowledge base. Please try again.'
+      );
     } finally {
       setIsRagLoading(false);
     }
@@ -189,6 +199,13 @@ export default function Support() {
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between">
           <span>{notice}</span>
           <button onClick={() => setNotice('')} className="hover:text-blue-900">Dismiss</button>
+        </div>
+      ) : null}
+
+      {aiError ? (
+        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 flex items-center justify-between">
+          <span>{aiError}</span>
+          <button onClick={() => setAiError('')} className="hover:text-red-900">Dismiss</button>
         </div>
       ) : null}
 
@@ -338,7 +355,7 @@ export default function Support() {
               </span>
             </div>
             <p className="text-xs text-slate-100 leading-relaxed font-sans">{ragAnswer.answer}</p>
-            {ragAnswer.citations?.length > 0 && (
+            {ragAnswer.citations.length > 0 && (
               <div className="pt-2 border-t border-white/10 flex items-center gap-2 text-[10px] text-slate-400">
                 <span>Citations:</span>
                 {ragAnswer.citations.map((c: string, i: number) => (

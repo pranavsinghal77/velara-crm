@@ -1,22 +1,9 @@
 import { useState } from 'react';
 
 import { Building2, Users, Sparkles } from 'lucide-react';
-import { Toggle, loadJson, saveJson } from './shared';
-
-export interface CrmSettings {
-  companyName: string; companyEmail: string; companyPhone: string; industry: string; city: string; website: string;
-  hotThreshold: number; followUpDays: string;
-  autoAssign: boolean; roundRobin: boolean;
-  jdWeight: number; imWeight: number; webWeight: number; waWeight: number;
-  aiScoring: boolean; aiFollowUp: boolean; aiTranscription: boolean; aiPostGen: boolean; aiLang: string;
-}
-
-export const CRM_DEF: CrmSettings = {
-  companyName: 'Velara Tech Pvt Ltd', companyEmail: 'hello@velara.in', companyPhone: '+91 98765 43210', industry: 'IT Services', city: 'Bengaluru, India', website: 'www.velara.in',
-  hotThreshold: 85, followUpDays: '2 days',
-  autoAssign: true, roundRobin: false, jdWeight: 85, imWeight: 80, webWeight: 70, waWeight: 65,
-  aiScoring: true, aiFollowUp: true, aiTranscription: true, aiPostGen: true, aiLang: 'English',
-};
+import { Toggle } from './shared';
+import { loadJson, saveJson } from './storage';
+import { CRM_DEF, type CrmSettings } from './defaults';
 
 export default function CrmTab() {
   const [crm, setCrm] = useState<CrmSettings>(() => loadJson('velara_settings', CRM_DEF));

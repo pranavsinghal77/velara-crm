@@ -1,27 +1,5 @@
 import { useMemo, useState } from 'react';
-import {
-  Users,
-  Flame,
-  Bell,
-  Trophy,
-  Sparkles,
-  BarChart3,
-  Activity,
-  ArrowUpRight,
-  ChevronRight,
-  Bot,
-  X,
-  Plus,
-  Receipt,
-  Phone,
-  MessageSquare,
-  Command,
-  IndianRupee,
-  ShieldCheck,
-  TrendingUp,
-  Clock,
-  ArrowRight,
-} from 'lucide-react';
+import { Flame, Bell, Trophy, Sparkles, BarChart3, Activity, ArrowUpRight, Bot, Plus, Receipt, Phone, Command, IndianRupee, ShieldCheck, Clock, ArrowRight } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -37,10 +15,6 @@ import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -163,8 +137,6 @@ export default function Dashboard() {
       })
       .sort((a, b) => b.revenue - a.revenue);
   }, [users, leads]);
-
-  const maxAssigned = Math.max(...salesReps.map((r) => r.assignedCount), 1);
 
   return (
     <div className="space-y-6">
@@ -420,7 +392,6 @@ export default function Dashboard() {
 
             <div className="space-y-3">
               {followUpQueue.map((lead) => {
-                const days = daysSince(lead.lastContact);
                 return (
                   <div
                     key={lead.id}
@@ -428,7 +399,12 @@ export default function Dashboard() {
                   >
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-slate-900 truncate">{lead.name}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{lead.company || lead.source}</p>
+                      <p className="text-[11px] text-slate-400 truncate">
+                        {lead.company || lead.source}
+                        {lead.lastContact
+                          ? ` · ${daysSince(lead.lastContact)}d since contact`
+                          : ' · never contacted'}
+                      </p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">

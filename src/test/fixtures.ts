@@ -1,3 +1,11 @@
+/**
+ * Test fixtures.
+ *
+ * This was `src/data/mockData.ts`, imported by `App.tsx`, which called
+ * `initializeMockData()` on every boot and wrote demo records into the live
+ * store. Demo data now comes from the server seeder (`npm run db:seed`) and
+ * these values exist only for tests.
+ */
 import type {
   Lead,
   User,
@@ -8,7 +16,6 @@ import type {
 } from '../types/models';
 
 import { daysAgo, isoOffset } from '../utils/dates';
-import { useCrmStore } from '../store/useCrmStore';
 
 // ─── Leads ───────────────────────────────────────────────────────────────────
 
@@ -262,7 +269,6 @@ export const mockUsers: User[] = [
     id: 'u1',
     name: 'Pranav Singhal',
     email: 'admin@velara.com',
-    password: 'password123',
     role: 'Admin',
     isActive: true,
     permissions: ['all'],
@@ -271,7 +277,6 @@ export const mockUsers: User[] = [
     id: 'u2',
     name: 'Rahul Joshi',
     email: 'manager@velara.com',
-    password: 'password123',
     role: 'Manager',
     isActive: true,
     permissions: ['leads', 'inbox', 'reminders', 'analytics'],
@@ -280,7 +285,6 @@ export const mockUsers: User[] = [
     id: 'u3',
     name: 'Sneha Kapoor',
     email: 'sneha@velara.com',
-    password: 'password123',
     role: 'Sales',
     isActive: true,
     permissions: ['leads', 'inbox', 'reminders'],
@@ -289,7 +293,6 @@ export const mockUsers: User[] = [
     id: 'u4',
     name: 'Karan Malhotra',
     email: 'karan@velara.com',
-    password: 'password123',
     role: 'Sales',
     isActive: true,
     permissions: ['leads', 'inbox', 'reminders'],
@@ -756,20 +759,3 @@ export const mockAIInsights: AIInsight[] = [
 ];
 
 // ─── Initialize mock data ────────────────────────────────────────────────────
-
-export function initializeMockData(): void {
-  const store = useCrmStore.getState();
-
-  // Only seed if store has no leads (first load or cleared)
-  if (store.leads.length > 0) {
-    return;
-  }
-
-  store.setLeads(mockLeads);
-  store.setUsers(mockUsers);
-  store.setMessages(mockMessages);
-  store.setReminders(mockReminders);
-  store.setNotifications(mockNotifications);
-}
-
-

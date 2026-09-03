@@ -1,88 +1,93 @@
 import { useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import {
-  Mail,
-  Lock,
-  UserCheck,
-  Eye,
-  EyeOff,
+  AlertCircle,
   ArrowRight,
   CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  Mail,
   X,
-  AlertCircle,
   Zap,
 } from 'lucide-react';
+import { ApiError } from '../lib/api';
+import { DEMO_ACCOUNTS, DEMO_LOGIN_ENABLED } from '../lib/config';
 import { useCrmStore } from '../store/useCrmStore';
 
 const FEATURES = [
-  'AI Lead Scoring — Know your hottest leads instantly',
-  'Unified Inbox — WhatsApp, Email & SMS in one place',
-  'Auto Follow-ups — Never miss a lead again',
-  'JustDial & IndiaMART — Native integration',
+  'AI Lead Scoring - know your hottest leads instantly',
+  'Unified Inbox - WhatsApp, Email & SMS in one place',
+  'Auto Follow-ups - never miss a lead again',
+  'JustDial & IndiaMART - native integration',
 ];
 
 export default function Login() {
   const navigate = useNavigate();
-
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
-  const [role, setRole]                 = useState('Admin');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading]       = useState(false);
-  const [error, setError]               = useState('');
-
-  const users = useCrmStore((s) => s.users);
   const login = useCrmStore((s) => s.login);
 
-  const handleLogin = (emailParam?: string, passParam?: string) => {
-    const loginEmail = emailParam || email;
-    const loginPass  = passParam  || password;
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  /**
+   * Authentication happens on the server.
+   *
+   * The old version did `users.find(u => u.email === x && u.password === y)`
+   * against a list held in the browser, and the demo buttons passed the
+   * literal string 'redacted' as the password - so they never worked at all,
+   * and once the API was reachable neither did the form, because the API
+   * (correctly) does not return password hashes.
+   */
+  async function handleLogin(emailValue = email, passwordValue = password) {
+    if (!emailValue.trim() || !passwordValue) {
+      setError('Enter your email and password.');
+      return;
+    }
+
     setIsLoading(true);
     setError('');
-    setTimeout(() => {
-      const user  = users.find((u) => u.email === loginEmail && u.password === loginPass);
-      if (user) {
-        login({ id: user.id, name: user.name, email: user.email, role: user.role, isLoggedIn: true });
-        navigate('/dashboard');
-      } else {
-        setError('Invalid credentials. Use demo buttons above.');
-      }
-      setIsLoading(false);
-    }, 800);
-  };
 
-  const quickLogin = (emailVal: string, passVal: string, roleVal: string) => {
-    setEmail(emailVal);
-    setPassword(passVal);
-    setRole(roleVal);
-    handleLogin(emailVal, passVal);
-  };
+    try {
+      await login(emailValue.trim(), passwordValue);
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(
+          err.status === 429
+            ? 'Too many attempts. Please wait a few minutes and try again.'
+            : err.message
+        );
+      } else {
+        setError('Something went wrong signing in. Please try again.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen flex">
-
-      {/* ══ LEFT PANEL ══════════════════════════════════════ */}
+      {/* Left panel */}
       <div className="hidden md:flex md:w-3/5 flex-col justify-between bg-gradient-to-br from-slate-900 via-blue-900 to-blue-700 p-12 text-white">
-
-        {/* Top */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1">
             <span className="text-4xl font-black text-white">Velara</span>
             <span className="text-4xl font-black text-blue-300">CRM</span>
           </div>
           <span className="text-sm text-blue-200 bg-blue-800/40 px-3 py-1 rounded-full w-fit">
-            🇮🇳 AI-First • Made for India
+            AI-First - Made for India
           </span>
         </div>
 
-        {/* Middle */}
         <div className="flex flex-col gap-4 my-auto py-10">
           <h2 className="text-3xl font-bold leading-tight">
             Close More Deals with AI Intelligence
           </h2>
           <p className="text-blue-200 text-base">
-            The only CRM built for Indian B2B sales teams
+            Built for Indian B2B sales teams
           </p>
           <div className="flex flex-col gap-3 mt-2">
             {FEATURES.map((f) => (
@@ -96,25 +101,20 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Bottom */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center">
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-sm font-bold text-white">RK</div>
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-purple-500 flex items-center justify-center text-sm font-bold text-white -ml-3">PS</div>
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-green-500 flex items-center justify-center text-sm font-bold text-white -ml-3">AM</div>
-          </div>
-          <div className="flex flex-col gap-0 ml-2">
-            <span className="text-white text-sm font-medium">500+ Indian sales teams trust Velara</span>
-            <span className="text-yellow-400 text-sm">★★★★★ 4.9/5</span>
-          </div>
-        </div>
+        <p className="text-blue-200 text-xs">
+          Sessions are protected by short-lived tokens and an httpOnly refresh cookie.
+        </p>
       </div>
 
-      {/* ══ RIGHT PANEL ══════════════════════════════════════ */}
+      {/* Right panel */}
       <div className="w-full md:w-2/5 bg-white flex flex-col justify-center px-8 py-12 md:px-12">
-        <div className="w-full max-w-sm mx-auto flex flex-col gap-6">
-
-          {/* Logo */}
+        <form
+          className="w-full max-w-sm mx-auto flex flex-col gap-6"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleLogin();
+          }}
+        >
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">V</span>
@@ -122,82 +122,82 @@ export default function Login() {
             <span className="text-gray-800 font-semibold text-base">Velara CRM</span>
           </div>
 
-          {/* Heading */}
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome back 👋</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
             <p className="text-gray-500 text-sm">Sign in to your workspace</p>
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div
+              role="alert"
+              className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+            >
               <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="text-red-600 text-sm flex-1">{error}</span>
-              <button onClick={() => setError('')}>
+              <button
+                type="button"
+                onClick={() => setError('')}
+                aria-label="Dismiss error"
+              >
                 <X className="w-4 h-4 text-red-400 hover:text-red-600" />
               </button>
             </div>
           )}
 
-          {/* Form */}
           <div className="flex flex-col gap-4">
-
-            {/* Email */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Email address</label>
+              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+                Email address
+              </label>
               <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
                 <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <input
+                  id="email"
+                  name="email"
                   type="email"
+                  autoComplete="email"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@velara.com"
+                  placeholder="you@company.com"
                   className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Password</label>
+              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+                Password
+              </label>
               <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
                 <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                 <input
+                  id="password"
+                  name="password"
                   type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder-gray-400"
                 />
-                <button type="button" onClick={() => setShowPassword((v) => !v)}>
-                  {showPassword
-                    ? <EyeOff className="w-4 h-4 text-gray-400 flex-shrink-0 cursor-pointer hover:text-gray-600" />
-                    : <Eye    className="w-4 h-4 text-gray-400 flex-shrink-0 cursor-pointer hover:text-gray-600" />}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+                  ) : (
+                    <Eye className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+                  )}
                 </button>
               </div>
             </div>
 
-            {/* Role */}
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Sign in as</label>
-              <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 bg-white">
-                <UserCheck className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                <select
-                  value={role}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="flex-1 text-sm outline-none bg-transparent text-gray-900 cursor-pointer"
-                >
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Sales">Sales Executive</option>
-                  <option value="Viewer">Viewer</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Sign In */}
             <button
-              onClick={() => handleLogin()}
+              type="submit"
               disabled={isLoading}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2 text-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
@@ -215,43 +215,39 @@ export default function Login() {
             </button>
           </div>
 
-          {/* Demo box */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-blue-600" />
-              <span className="text-blue-800 font-semibold text-sm">Quick Demo Access</span>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-0">
-                <span className="text-xs font-medium text-gray-700">Admin</span>
-                <span className="text-xs text-gray-500">admin@velara.com</span>
+          {/*
+            Demo shortcuts are behind VITE_ENABLE_DEMO_LOGIN and still perform a
+            real server login - they only prefill the email. The password comes
+            from whoever seeded the database.
+          */}
+          {DEMO_LOGIN_ENABLED && (
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-blue-600" />
+                <span className="text-blue-800 font-semibold text-sm">Demo accounts</span>
               </div>
-              <button
-                onClick={() => quickLogin('admin@velara.com', 'redacted', 'Admin')}
-                disabled={isLoading}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors font-medium disabled:opacity-70"
-              >
-                Login as Admin
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-0">
-                <span className="text-xs font-medium text-gray-700">Sales</span>
-                <span className="text-xs text-gray-500">sneha@velara.com</span>
+              <p className="text-xs text-gray-600">
+                Prefills an email. Enter the password printed by{' '}
+                <code className="bg-white px-1 rounded">npm run db:seed</code>.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {DEMO_ACCOUNTS.map((account) => (
+                  <button
+                    key={account.email}
+                    type="button"
+                    onClick={() => {
+                      setEmail(account.email);
+                      setError('');
+                    }}
+                    className="text-xs bg-white border border-blue-200 text-blue-700 px-2.5 py-1.5 rounded-md hover:bg-blue-100 transition-colors font-medium"
+                  >
+                    {account.label}
+                  </button>
+                ))}
               </div>
-              <button
-                onClick={() => quickLogin('sneha@velara.com', 'redacted', 'Sales')}
-                disabled={isLoading}
-                className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md transition-colors font-medium disabled:opacity-70"
-              >
-                Login as Sales
-              </button>
             </div>
-          </div>
-
-        </div>
+          )}
+        </form>
       </div>
     </div>
   );

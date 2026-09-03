@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   IndianRupee,
   TrendingUp,
@@ -14,12 +14,19 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
   PieChart, Pie, Cell,
 } from 'recharts';
+import { ApiError, api } from '../lib/api';
 import { useCrmStore } from '../store/useCrmStore';
-import type { Lead } from '../types/models';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
 type Range = '7 Days' | '30 Days' | '90 Days';
+
+interface TrendPoint {
+  week: string;
+  startDate: string;
+  newLeads: number;
+  converted: number;
+}
 
 const SOURCE_COLORS: Record<string, string> = {
   JustDial: '#2563EB', IndiaMART: '#F97316', Website: '#10B981', WhatsApp: '#14B8A6', Referral: '#8B5CF6',
@@ -27,24 +34,6 @@ const SOURCE_COLORS: Record<string, string> = {
 
 const FUNNEL_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiation', 'Won'] as const;
 const FUNNEL_COLORS = ['#2563EB', '#6366F1', '#8B5CF6', '#F59E0B', '#10B981'];
-
-const WEEK_DATA = [
-  { week: 'Week 1', newLeads: 4, converted: 1 },
-  { week: 'Week 2', newLeads: 7, converted: 2 },
-  { week: 'Week 3', newLeads: 5, converted: 2 },
-  { week: 'Week 4', newLeads: 9, converted: 4 },
-  { week: 'Week 5', newLeads: 6, converted: 2 },
-  { week: 'Week 6', newLeads: 11, converted: 5 },
-  { week: 'Week 7', newLeads: 8, converted: 3 },
-];
-
-const AI_INSIGHTS = [
-  { emoji: '🎯', text: 'Best converting source: Referral (avg score 89)', conf: 92 },
-  { emoji: '⏰', text: 'Optimal follow-up time: Tuesday-Thursday 10-11 AM', conf: 87 },
-  { emoji: '🔥', text: '5 HOT leads need immediate attention', conf: 95 },
-  { emoji: '📈', text: 'Conversion rate up 12% vs last month', conf: 78 },
-  { emoji: '💡', text: 'IndiaMART leads convert 40% faster than average', conf: 83 },
-];
 
 function parseBudget(b?: string): number {
   if (!b) return 0;
@@ -65,11 +54,96 @@ export default function Analytics() {
   const [showAllRisks, setShowAllRisks] = useState(false);
   const leads = useCrmStore((s) => s.leads);
 
+  // Weekly acquisition/conversion counts, aggregated server-side from this
+  // organisation's own leads. This chart previously rendered a hardcoded
+  // seven-week array that never changed.
+  const [trend, setTrend] = useState<TrendPoint[]>([]);
+  const [trendError, setTrendError] = useState('');
+  // Read the clock once, at mount. Calling Date.now() inside the memo below
+  // made the render impure: results shifted on any incidental re-render.
+  const [asOf] = useState(() => Date.now());
+
+  useEffect(() => {
+    let ignore = false;
+
+    api
+      .get<{ data: TrendPoint[] }>('/analytics/trend')
+      .then((res) => {
+        if (!ignore) setTrend(res.data);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setTrendError(
+            err instanceof ApiError ? err.message : 'Could not load the acquisition trend.'
+          );
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
   // ── KPIs ──────────────────────────────────────────────────
   const totalPipeline = useMemo(() => leads.reduce((s, l) => s + parseBudget(l.budget), 0), [leads]);
   const wonLeads = leads.filter((l) => l.status === 'Won');
   const convRate = leads.length ? ((wonLeads.length / leads.length) * 100) : 0;
   const avgDeal = wonLeads.length ? wonLeads.reduce((s, l) => s + parseBudget(l.budget), 0) / wonLeads.length : 0;
+
+  // Observations computed from the pipeline in front of the user. Each one is
+  // a plain aggregate, not a model output, so it is stated as a fact rather
+  // than dressed up with an invented confidence score.
+  const insights = useMemo(() => {
+    if (leads.length === 0) return [] as { emoji: string; text: string }[];
+
+    const bySource = new Map<string, { total: number; score: number }>();
+    for (const lead of leads) {
+      const entry = bySource.get(lead.source) ?? { total: 0, score: 0 };
+      entry.total += 1;
+      entry.score += lead.aiScore;
+      bySource.set(lead.source, entry);
+    }
+
+    const bestSource = [...bySource.entries()]
+      .filter(([, v]) => v.total >= 2)
+      .map(([name, v]) => ({ name, avg: Math.round(v.score / v.total) }))
+      .sort((a, b) => b.avg - a.avg)[0];
+
+    const isOpen = (status: string) => status !== 'Won' && status !== 'Lost';
+    const hot = leads.filter((l) => l.isHot && isOpen(l.status));
+    const stale = leads.filter(
+      (l) =>
+        isOpen(l.status) &&
+        (!l.lastContact || asOf - new Date(l.lastContact).getTime() > 7 * 86_400_000)
+    );
+    const inNegotiation = leads.filter((l) => l.status === 'Negotiation');
+
+    const out: { emoji: string; text: string }[] = [];
+    if (bestSource) {
+      out.push({
+        emoji: '\u{1F3AF}',
+        text: `Highest-scoring source: ${bestSource.name} (average score ${bestSource.avg})`,
+      });
+    }
+    if (hot.length > 0) {
+      out.push({ emoji: '\u{1F525}', text: `${hot.length} hot lead(s) still open in the pipeline` });
+    }
+    if (stale.length > 0) {
+      out.push({
+        emoji: '\u{23F0}',
+        text: `${stale.length} open lead(s) with no contact in the last 7 days`,
+      });
+    }
+    if (inNegotiation.length > 0) {
+      out.push({
+        emoji: '\u{1F4C8}',
+        text: `${inNegotiation.length} deal(s) in Negotiation worth ${fmt(
+          inNegotiation.reduce((sum, l) => sum + parseBudget(l.budget), 0)
+        )}`,
+      });
+    }
+    return out;
+  }, [leads, asOf]);
 
   // ── source pie ────────────────────────────────────────────
   const sourceData = useMemo(() => {
@@ -259,8 +333,17 @@ export default function Analytics() {
             <TrendingUp size={16} className="text-blue-600" />
             <h3 className="text-sm font-bold text-gray-900">Lead Acquisition Trend</h3>
           </div>
+          {trendError ? (
+            <p className="h-[250px] flex items-center justify-center text-xs text-red-600">
+              {trendError}
+            </p>
+          ) : trend.length === 0 ? (
+            <p className="h-[250px] flex items-center justify-center text-xs text-gray-400">
+              Not enough history yet.
+            </p>
+          ) : (
           <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={WEEK_DATA}>
+            <LineChart data={trend}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94A3B8' }} />
               <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} />
@@ -270,6 +353,7 @@ export default function Analytics() {
               <Line type="monotone" dataKey="converted" name="Converted" stroke="#10B981" strokeWidth={2} dot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
+          )}
         </div>
 
         {/* Pie Chart */}
@@ -372,23 +456,22 @@ export default function Analytics() {
             <Sparkles size={16} className="text-[#7C3AED]" />
             <h3 className="text-sm font-bold text-gray-900">AI Insights</h3>
           </div>
+          {/* Derived from the loaded leads, so every line is checkable against
+              the pipeline. The previous panel was five hardcoded strings with
+              invented confidence percentages. */}
           <div className="space-y-2">
-            {AI_INSIGHTS.map((ins) => (
-              <div key={ins.text} className="bg-purple-50 rounded-lg p-3">
-                <div className="flex items-start gap-2">
+            {insights.length === 0 ? (
+              <p className="text-xs text-gray-400 py-6 text-center">
+                Add a few leads to see pipeline observations here.
+              </p>
+            ) : (
+              insights.map((ins) => (
+                <div key={ins.text} className="bg-purple-50 rounded-lg p-3 flex items-start gap-2">
                   <span className="text-sm shrink-0">{ins.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-700">{ins.text}</p>
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-purple-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#7C3AED] rounded-full" style={{ width: `${ins.conf}%` }} />
-                      </div>
-                      <span className="text-[10px] font-semibold text-purple-600">{ins.conf}%</span>
-                    </div>
-                  </div>
+                  <p className="text-xs text-gray-700 flex-1">{ins.text}</p>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </div>

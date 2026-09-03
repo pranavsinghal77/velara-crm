@@ -1,19 +1,5 @@
 import React, { useState } from 'react';
-import {
-  X,
-  Flame,
-  Phone,
-  MessageSquare,
-  Receipt,
-  Clock,
-  Plus,
-  Send,
-  Sparkles,
-  Building,
-  MapPin,
-  Calendar,
-  CheckCircle2,
-} from 'lucide-react';
+import { X, Flame, Phone, MessageSquare, Receipt, Clock, Plus, Sparkles, Building } from 'lucide-react';
 import type { Lead } from '../../types/models';
 import { sourceBadge, statusBadge, scoreColor } from './types';
 

@@ -1,17 +1,9 @@
 import { useState } from 'react';
 
 import { Palette, Check, Paintbrush } from 'lucide-react';
-import { Toggle, loadJson, saveJson } from './shared';
-
-export interface AppearSettings {
-  theme: string; primaryColor: string; compact: boolean; fontSize: string;
-  showAiBadges: boolean; animations: boolean; showWelcome: boolean;
-}
-
-export const APPEAR_DEF: AppearSettings = {
-  theme: 'Light', primaryColor: '#2563EB', compact: false, fontSize: 'Medium',
-  showAiBadges: true, animations: true, showWelcome: true,
-};
+import { Toggle } from './shared';
+import { loadJson, saveJson } from './storage';
+import { APPEAR_DEF, type AppearSettings } from './defaults';
 
 export default function AppearanceTab() {
   const [appear, setAppear] = useState<AppearSettings>(() => loadJson('velara_settings_appear', APPEAR_DEF));

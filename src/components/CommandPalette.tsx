@@ -1,31 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Search,
-  LayoutDashboard,
-  Users,
-  MessageSquare,
-  Phone,
-  FileText,
-  MapPin,
-  Trophy,
-  Zap,
-  LifeBuoy,
-  BarChart3,
-  Share2,
-  Settings,
-  Plus,
-  Receipt,
-  Sparkles,
-  ArrowRight,
-  Command,
-  Building,
-  Flame,
-} from 'lucide-react';
+import { Search, LayoutDashboard, Users, MessageSquare, Phone, FileText, MapPin, Trophy, Zap, LifeBuoy, BarChart3, Settings, Plus, Receipt, Sparkles, ArrowRight, Command } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 interface CommandPaletteProps {
-  isOpen: boolean;
   onClose: () => void;
 }
 
@@ -40,21 +18,18 @@ interface CommandItem {
   action: () => void;
 }
 
-export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
+export default function CommandPalette({ onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const leads = useCrmStore((s) => s.leads);
 
-  // Focus input when opened
+  // Focusing the DOM node is a genuine external-system effect; the state
+  // reset that used to live here is handled by mounting fresh.
   useEffect(() => {
-    if (isOpen) {
-      setQuery('');
-      setSelectedIndex(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
-  }, [isOpen]);
+    inputRef.current?.focus();
+  }, []);
 
   // Navigation Items
   const navItems: CommandItem[] = useMemo(
@@ -260,7 +235,6 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
   // Keyboard navigation
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (!isOpen) return;
 
       if (e.key === 'ArrowDown') {
         e.preventDefault();
@@ -281,9 +255,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, filteredItems, selectedIndex, onClose]);
-
-  if (!isOpen) return null;
+  }, [filteredItems, selectedIndex, onClose]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-start justify-center pt-[12vh] p-4 animate-in fade-in duration-150">

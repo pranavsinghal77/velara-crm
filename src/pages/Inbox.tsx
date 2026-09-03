@@ -1,25 +1,7 @@
 import React from 'react';
 import { useState, useMemo, useRef, useEffect } from 'react';
-import {
-  MessageSquare,
-  Send,
-  Paperclip,
-  Image,
-  Phone,
-  Video,
-  MoreVertical,
-  Sparkles,
-  X,
-  RefreshCw,
-  ShieldAlert,
-  AlertTriangle,
-  Flame,
-  Zap,
-  Check,
-  Copy,
-  UserCheck,
-  TrendingUp,
-} from 'lucide-react';
+import { MessageSquare, Send, Phone, Video, Sparkles, X, RefreshCw, ShieldAlert, AlertTriangle, Zap, Check, Copy } from 'lucide-react';
+import { ApiError, api } from '../lib/api';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Message, Lead } from '../types/models';
 
@@ -41,12 +23,6 @@ function scoreColor(s: number) {
   if (s >= 50) return 'text-orange-600 border-orange-500';
   return 'text-red-600 border-red-500';
 }
-
-const aiSuggestions = [
-  'Follow up on the proposal sent last week',
-  'Best time to call: 10-11 AM based on past responses',
-  'Lead score increased — consider closing now',
-];
 
 const quickReplies = [
   'Namaste! Thank you for your interest 🙏',
@@ -107,8 +83,6 @@ export default function Inbox() {
   const [selectedLead, setSelectedLead] = useState<string | null>('lead_1');
   const [input, setInput] = useState('');
   const [search, setSearch] = useState('');
-  const [showAI, setShowAI] = useState(true);
-  const [aiIdx] = useState(0);
   const [replySeed, setReplySeed] = useState(0);
 
   // BiteDash / ZeroBT AI Integration states
@@ -118,6 +92,7 @@ export default function Inbox() {
   const [selectedTier, setSelectedTier] = useState<number>(3);
   const [dossier, setDossier] = useState<EscalationDossier | null>(null);
   const [isDossierLoading, setIsDossierLoading] = useState(false);
+  const [dossierError, setDossierError] = useState('');
   const [copied, setCopied] = useState(false);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -181,9 +156,15 @@ export default function Inbox() {
 
   const [smartReplies, setSmartReplies] = useState<string[]>(DEFAULT_SMART_REPLIES);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
 
   // ── Fetch AI Smart Replies & Sentiment Analysis ─────────
   useEffect(() => {
+    // Set when the effect is torn down, so a slow response for a conversation
+    // the user has already navigated away from is discarded instead of
+    // overwriting the current one.
+    let ignore = false;
+
     const fetchAiData = async () => {
       const convo = conversations.find((c) => c.leadId === selectedLead);
       const lastReceived = convo?.msgs.filter((m) => m.sender === 'received').at(-1);
@@ -197,43 +178,56 @@ export default function Inbox() {
       setIsAiLoading(true);
       setIsSentimentLoading(true);
 
-      try {
-        const [replyRes, sentimentRes] = await Promise.all([
-          fetch('http://localhost:3001/api/ai/smart-reply', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: lastReceived.content }),
-          }),
-          fetch('http://localhost:3001/api/ai/sentiment-analysis', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              message: lastReceived.content,
-              history: convo?.msgs.slice(-5).map((m) => ({ sender: m.sender, content: m.content })),
-            }),
-          }),
-        ]);
+      const history =
+        convo?.msgs.slice(-5).map((m) => ({ sender: m.sender, content: m.content })) ?? [];
 
-        if (replyRes.ok) {
-          const data = await replyRes.json();
-          setSmartReplies([data.reply, "I'll send you the details shortly.", "Let's schedule a call."]);
-        }
-        if (sentimentRes.ok) {
-          const sentData = await sentimentRes.json();
-          setSentiment(sentData);
-          if (sentData.recommendedTier) {
-            setSelectedTier(sentData.recommendedTier);
-          }
-        }
-      } catch {
+      // Settled, not all-or-nothing: a sentiment failure should not also wipe
+      // the smart replies. Each result is applied independently and a failure
+      // falls back to the generic canned replies, which are clearly labelled
+      // as such rather than dressed up as model output.
+      const [replyResult, sentimentResult] = await Promise.allSettled([
+        api.post<{ reply: string }>('/ai/smart-reply', { message: lastReceived.content }),
+        api.post<SentimentData & { recommendedTier?: number }>('/ai/sentiment-analysis', {
+          message: lastReceived.content,
+          history,
+        }),
+      ]);
+
+      if (ignore) return;
+
+      if (replyResult.status === 'fulfilled') {
+        setSmartReplies([
+          replyResult.value.reply,
+          "I'll send you the details shortly.",
+          "Let's schedule a call.",
+        ]);
+        setAiUnavailable(false);
+      } else {
         setSmartReplies(DEFAULT_SMART_REPLIES);
-      } finally {
-        setIsAiLoading(false);
-        setIsSentimentLoading(false);
+        setAiUnavailable(
+          replyResult.reason instanceof ApiError && replyResult.reason.status === 503
+        );
       }
+
+      if (sentimentResult.status === 'fulfilled') {
+        setSentiment(sentimentResult.value);
+        if (sentimentResult.value.recommendedTier) {
+          setSelectedTier(sentimentResult.value.recommendedTier);
+        }
+      } else {
+        // No invented frustration score.
+        setSentiment(null);
+      }
+
+      setIsAiLoading(false);
+      setIsSentimentLoading(false);
     };
     
-    fetchAiData();
+    void fetchAiData();
+
+    return () => {
+      ignore = true;
+    };
   }, [selectedLead, replySeed, conversations]);
 
   function refreshSmartReplies() {
@@ -245,24 +239,27 @@ export default function Inbox() {
     if (!activeLead) return;
     setIsDossierLoading(true);
     setShowEscalationModal(true);
+    setDossierError('');
     try {
-      const res = await fetch('http://localhost:3001/api/ai/escalate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadName: activeLead.name,
-          company: activeLead.company,
-          budget: activeLead.budget,
-          targetTier: selectedTier,
-          messages: activeConvo?.msgs.map((m) => ({ sender: m.sender, content: m.content })),
-        }),
+      const data = await api.post<EscalationDossier>('/ai/escalate', {
+        leadId: activeLead.id,
+        leadName: activeLead.name,
+        company: activeLead.company,
+        budget: activeLead.budget,
+        targetTier: selectedTier,
+        messages:
+          activeConvo?.msgs.slice(-20).map((m) => ({ sender: m.sender, content: m.content })) ?? [],
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDossier(data);
-      }
-    } catch (e) {
-      console.error(e);
+      setDossier(data);
+    } catch (err) {
+      setDossier(null);
+      setDossierError(
+        err instanceof ApiError
+          ? err.status === 503
+            ? 'AI escalation is unavailable right now. No dossier was generated.'
+            : err.message
+          : 'Could not generate the dossier. Please try again.'
+      );
     } finally {
       setIsDossierLoading(false);
     }
@@ -437,6 +434,12 @@ export default function Inbox() {
             </div>
 
             {/* ── BiteDash Frustration & Sentiment Radar Bar ──────── */}
+            {isSentimentLoading && !sentiment && (
+              <div className="px-4 py-2 bg-slate-900 text-slate-300 text-xs shrink-0 border-b border-slate-700/50 flex items-center gap-2">
+                <span className="w-3 h-3 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                Reading sentiment...
+              </div>
+            )}
             {sentiment && (
               <div className="px-4 py-2 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white flex items-center justify-between gap-4 text-xs shrink-0 border-b border-slate-700/50">
                 <div className="flex items-center gap-3">
@@ -568,6 +571,12 @@ export default function Inbox() {
                     <RefreshCw size={12} />
                   </button>
                 </div>
+                {aiUnavailable && (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 mb-1.5">
+                    AI is unavailable, so these are generic templates rather than
+                    suggestions for this thread.
+                  </p>
+                )}
                 <div className="flex flex-col gap-1.5">
                   {isAiLoading ? (
                     <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -722,6 +731,16 @@ export default function Inbox() {
                       {dossier.readyToReply}
                     </p>
                   </div>
+                </div>
+              ) : dossierError ? (
+                <div className="py-10 px-4 text-center">
+                  <p className="text-xs font-semibold text-red-600">{dossierError}</p>
+                  <button
+                    onClick={() => void generateEscalationDossier()}
+                    className="mt-3 text-xs font-semibold text-orange-700 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded-lg hover:bg-orange-100"
+                  >
+                    Try again
+                  </button>
                 </div>
               ) : null}
             </div>

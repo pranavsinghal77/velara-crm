@@ -1,22 +1,5 @@
-import { useMemo, useState } from 'react';
-import {
-  Workflow,
-  Sparkles,
-  Play,
-  Pause,
-  Plus,
-  Clock,
-  Target,
-  Send,
-  Bell,
-  ArrowRight,
-  CheckCircle2,
-  Zap,
-  MessageSquare,
-  Mail,
-  Phone,
-  Filter,
-} from 'lucide-react';
+import { useState } from 'react';
+import { Play, Pause, Plus, Clock, Target, Bell, CheckCircle2, Zap } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 type FlowState = 'Running' | 'Paused';

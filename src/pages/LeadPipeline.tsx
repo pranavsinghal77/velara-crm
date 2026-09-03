@@ -1,21 +1,5 @@
 import { useState, useMemo } from 'react';
-import {
-  Plus,
-  Search,
-  Trash2,
-  Download,
-  LayoutGrid,
-  List,
-  Phone,
-  MessageSquare,
-  ArrowRight,
-  ChevronRight,
-  TrendingUp,
-  Sparkles,
-  Building,
-  MapPin,
-  IndianRupee,
-} from 'lucide-react';
+import { Plus, Search, Trash2, Download, LayoutGrid, List, ArrowRight, Building, MapPin, IndianRupee } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
 

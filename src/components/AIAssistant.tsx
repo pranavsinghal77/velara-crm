@@ -1,22 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import {
-  Sparkles,
-  X,
-  Send,
-  Flame,
-  Clock,
-  BarChart3,
-  Bot,
-  Copy,
-  Check,
-  RotateCcw,
-  ArrowRight,
-  TrendingUp,
-  Phone,
-  MessageSquare,
-  ShieldCheck,
-  User,
-} from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Sparkles, X, Send, Flame, Clock, BarChart3, Copy, Check, RotateCcw } from 'lucide-react';
+import { ApiError, api } from '../lib/api';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead, Reminder } from '../types/models';
 
@@ -97,62 +81,43 @@ export default function AIAssistant() {
     setView('chat');
     setIsChatLoading(true);
 
-    try {
-      const topFiveLeads = leads
-        .slice(0, 5)
-        .map((l) => ({ name: l.name, score: l.aiScore, status: l.status, budget: l.budget, source: l.source }));
-
-      const res = await fetch('http://localhost:3001/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: question,
-          context: {
-            totalLeadsCount: leads.length,
-            hotLeadsCount: hotLeads.length,
-            wonThisMonth,
-            topLeadName: topLead?.name,
-            topLeadScore: topLead?.aiScore,
-            pendingReminders: todayReminders.length,
-            topLeads: topFiveLeads,
-          },
-          history: messages.slice(-6).map((m) => ({ role: m.role, content: m.text })),
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const replyText = data.response || data.reply || 'Here is what I found in your CRM.';
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: 'assistant',
-            text: replyText,
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: 'assistant',
-            text: 'I encountered an issue connecting to the AI brain. Please try again.',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-      }
-    } catch {
+    const reply = (text: string) => {
       setMessages((prev) => [
         ...prev,
         {
           id: `a-${Date.now()}`,
           role: 'assistant',
-          text: 'Unable to reach backend API. Make sure the server on port 3001 is running.',
+          text,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
+    };
+
+    try {
+      // The pipeline snapshot is assembled server-side from this org's own
+      // records. Sending it from here meant the model was reasoning over
+      // whatever the browser chose to claim.
+      const data = await api.post<{ response: string }>('/ai/chat', {
+        query: question,
+        history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text })),
+      });
+      reply(data.response);
+    } catch (err) {
+      // Say what actually went wrong instead of presenting a canned
+      // "pipeline summary" as if the model had produced it.
+      if (err instanceof ApiError) {
+        reply(
+          err.status === 503
+            ? 'AI is not available right now, so I cannot answer that. Your CRM data is unaffected.'
+            : err.status === 429
+              ? 'I am handling too many requests at the moment. Try again in a minute.'
+              : err.isOffline
+                ? 'I cannot reach the server. Check your connection and try again.'
+                : err.message
+        );
+      } else {
+        reply('Something went wrong answering that. Please try again.');
+      }
     } finally {
       setIsChatLoading(false);
     }

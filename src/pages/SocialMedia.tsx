@@ -8,7 +8,7 @@ import TrendingIdeas from './social/TrendingIdeas';
 
 import { SCHEDULED_POSTS, FEED_POSTS, MARCH_START_OFFSET, MARCH_DAYS } from './social/types';
 import type { Platform, FeedFilter, ScheduledPost } from './social/types';
-import { PLATFORM_CONFIG } from './social/shared';
+import { PLATFORM_CONFIG } from './social/platforms';
 
 export default function SocialMedia() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['IG', 'FB', 'LI']);

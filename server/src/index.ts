@@ -1,121 +1,181 @@
-import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import express from 'express';
 import helmet from 'helmet';
-import morgan from 'morgan';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
-import dotenv from 'dotenv';
-import routes from './routes';
-import { errorHandler } from './middlewares/errorHandler';
-import { logger } from './utils/logger';
+import morgan from 'morgan';
 import { prisma } from './config/db';
-import { renderStatusPortal } from './views/statusPortal';
-
-dotenv.config();
+import { env } from './config/env';
+import { errorHandler } from './middlewares/errorHandler';
+import { globalLimiter } from './middlewares/rateLimits';
+import { createRealtimeServer } from './realtime';
+import routes from './routes';
+import { HttpError } from './utils/httpError';
+import { logger } from './utils/logger';
+import { purgeExpiredTokens } from './utils/tokens';
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  },
-});
 
-// Attach socket.io instance to the app so controllers can access it
+// Client IPs drive rate limiting, so only believe X-Forwarded-For when we are
+// actually behind a proxy that sets it.
+if (env.TRUST_PROXY) app.set('trust proxy', 1);
+
+const io = createRealtimeServer(httpServer);
 app.set('io', io);
 
-// Global Middlewares
+// --- Security & parsing -----------------------------------------------------
+
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    // This is a JSON API; it serves no HTML, so a restrictive CSP costs
+    // nothing. (The old config disabled CSP entirely.)
+    contentSecurityPolicy: {
+      directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+    },
+    crossOriginResourcePolicy: { policy: 'same-site' },
+    referrerPolicy: { policy: 'no-referrer' },
   })
 );
-app.use(cors());
-app.use(express.json());
 
-// Request Logging
-if (process.env.NODE_ENV !== 'test') {
+app.use(
+  cors({
+    // Explicit allowlist instead of the previous wide-open `cors()`. Requests
+    // with no Origin (server-to-server, curl, health checks) are allowed
+    // through; browsers always send one.
+    origin(origin, callback) {
+      if (!origin || env.corsOrigins.includes(origin)) return callback(null, true);
+      callback(new HttpError(403, `Origin ${origin} is not allowed`, 'cors_rejected'));
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    maxAge: 86_400,
+  })
+);
+
+// Field-ops photo uploads are base64 data URLs, hence the raised ceiling; the
+// per-field caps in the zod schemas are the real limit.
+app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
+
+if (!env.isTest) {
   app.use(
-    morgan('dev', {
+    morgan(env.isProduction ? 'combined' : 'dev', {
       stream: { write: (message: string) => logger.info(message.trim()) },
+      // Health checks would otherwise dominate the log.
+      skip: (req) => req.path === '/health',
     })
   );
 }
 
-// ── Root Endpoint & Developer Status Portal ──────────────
-app.get('/', async (req, res) => {
-  if (req.headers.accept && req.headers.accept.includes('application/json')) {
-    return res.json({
-      status: 'ok',
-      service: 'Velara CRM Enterprise Backend API',
-      version: '0.1.0',
-      database: 'PostgreSQL (Supabase)',
-      ai: 'Google Gemini 1.5 Flash',
-      docs: '/api',
-    });
-  }
+app.use('/api', globalLimiter);
 
-  try {
-    const leadCount = await prisma.lead.count().catch(() => 12);
-    const html = renderStatusPortal({
-      uptime: process.uptime(),
-      dbStatus: 'Connected',
-      leadCount,
-      port: PORT,
-    });
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-  } catch (err) {
-    const html = renderStatusPortal({
-      uptime: process.uptime(),
-      dbStatus: 'Online',
-      leadCount: 12,
-      port: PORT,
-    });
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-  }
-});
+// --- Public endpoints -------------------------------------------------------
 
-// Basic health check
-app.get('/health', async (req, res) => {
-  try {
-    const count = await prisma.lead.count().catch(() => 12);
-    res.json({
-      status: 'healthy',
-      uptime: process.uptime(),
-      database: 'PostgreSQL',
-      leadCount: count,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    res.json({ status: 'ok', db: 'PostgreSQL', uptime: process.uptime() });
-  }
-});
-
-// Routes
-app.use('/api', routes);
-
-// 404 handler
-app.use((req, res, next) => {
-  const error = new Error(`Not Found - ${req.originalUrl}`);
-  (error as any).statusCode = 404;
-  next(error);
-});
-
-// Global Error Handler
-app.use(errorHandler);
-
-// Socket.io for Real-Time Omnichannel Syncing
-io.on('connection', (socket) => {
-  logger.info(`Client connected: ${socket.id}`);
-  socket.on('disconnect', () => {
-    logger.info(`Client disconnected: ${socket.id}`);
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'Velara CRM API',
+    version: '1.0.0',
+    status: 'ok',
+    docs: '/api/auth/login',
   });
 });
 
-const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  logger.info(`Server running on port ${PORT}`);
+/**
+ * Health check. Reports the real database state instead of the previous
+ * version, which caught every error and reported "Connected" with a
+ * hardcoded lead count of 12 regardless.
+ */
+app.get('/health', async (_req, res) => {
+  const started = Date.now();
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'healthy',
+      uptime: Math.round(process.uptime()),
+      database: { status: 'connected', latencyMs: Date.now() - started },
+      ai: env.aiEnabled ? 'configured' : 'disabled',
+    });
+  } catch (err) {
+    logger.error('Health check failed', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+    res.status(503).json({
+      status: 'unhealthy',
+      uptime: Math.round(process.uptime()),
+      database: { status: 'unreachable' },
+    });
+  }
 });
+
+// --- API --------------------------------------------------------------------
+
+app.use('/api', routes);
+
+app.use((req, _res, next) => {
+  next(new HttpError(404, `Cannot ${req.method} ${req.originalUrl}`, 'not_found'));
+});
+
+app.use(errorHandler);
+
+// --- Lifecycle --------------------------------------------------------------
+
+const server = httpServer.listen(env.PORT, () => {
+  logger.info(
+    `Velara CRM API listening on :${env.PORT} [${env.NODE_ENV}] ` +
+      `cors=${env.corsOrigins.join(',') || 'none'} ai=${env.aiEnabled ? 'on' : 'off'}`
+  );
+});
+
+// Revoked and expired refresh tokens accumulate forever otherwise.
+const tokenCleanup = setInterval(
+  () => {
+    purgeExpiredTokens()
+      .then((n) => n > 0 && logger.debug(`Purged ${n} expired refresh tokens`))
+      .catch((err) => logger.error('Token purge failed', { error: String(err) }));
+  },
+  6 * 60 * 60 * 1000
+);
+tokenCleanup.unref();
+
+/**
+ * Graceful shutdown: stop accepting connections, close sockets, then release
+ * the database pool. Without this, a redeploy can drop in-flight requests and
+ * leak Postgres connections.
+ */
+async function shutdown(signal: string) {
+  logger.info(`${signal} received, shutting down`);
+  clearInterval(tokenCleanup);
+
+  const timeout = setTimeout(() => {
+    logger.error('Shutdown timed out, forcing exit');
+    process.exit(1);
+  }, 10_000);
+  timeout.unref();
+
+  try {
+    io.close();
+    await new Promise<void>((resolve, reject) =>
+      server.close((err) => (err ? reject(err) : resolve()))
+    );
+    await prisma.$disconnect();
+    logger.info('Shutdown complete');
+    process.exit(0);
+  } catch (err) {
+    logger.error('Error during shutdown', { error: String(err) });
+    process.exit(1);
+  }
+}
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled promise rejection', { reason: String(reason) });
+});
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught exception', { error: err.message, stack: err.stack });
+  void shutdown('uncaughtException');
+});
+
+export { app, io };

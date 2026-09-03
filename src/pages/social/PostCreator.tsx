@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { Sparkles, Copy, RefreshCw, X, Zap, Calendar } from 'lucide-react';
 import { TONES, LANGS, PLATFORMS, QUICK_TOPICS, DEFAULT_HASHTAGS, GENERATED_CAPTION } from './types';
 import type { Platform, Tone, Language } from './types';
-import { PLATFORM_CONFIG, PlatformIcon } from './shared';
+import { PlatformIcon } from './shared';
+import { PLATFORM_CONFIG } from './platforms';
 
 interface PostCreatorProps {
   selectedPlatforms: Platform[];

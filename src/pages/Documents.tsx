@@ -1,21 +1,5 @@
-import React from 'react';
 import { useState, useMemo, useRef } from 'react';
-import {
-  FolderOpen,
-  Upload,
-  Sparkles,
-  FileText,
-  CloudUpload,
-  Receipt,
-  Download,
-  Share2,
-  Check,
-  Building,
-  Plus,
-  Trash2,
-  X,
-  IndianRupee,
-} from 'lucide-react';
+import { FolderOpen, Upload, Receipt, Download, Plus, Trash2, X } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 import DocSidebar from './documents/DocSidebar';
@@ -53,17 +37,17 @@ export default function Documents() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadLead, setUploadLead] = useState('');
   const [uploadCategory, setUploadCategory] = useState<Exclude<DocCategory, 'All Documents'>>('Contracts');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadDone, setUploadDone] = useState(false);
+  const [uploadProgress] = useState(0);
+  const [uploadDone] = useState(false);
   const [notice, setNotice] = useState('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // ── GST Quotation Generator State ─────────────────────────
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [quoteClient, setQuoteClient] = useState(leads[0]?.name || 'Rajesh Kumar');
   const [quoteCompany, setQuoteCompany] = useState(leads[0]?.company || 'Kumar Enterprises');
   const [quoteGstin, setQuoteGstin] = useState('27AAACK1234F1Z8');
-  const [quoteState, setQuoteState] = useState('Maharashtra (27)');
+  const [quoteState] = useState('Maharashtra (27)');
   const [discountPercent, setDiscountPercent] = useState(20);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([
     { description: 'Velara CRM Enterprise Suite — 50 User Annual License', hsn: '997331', qty: 1, rate: 180000 },

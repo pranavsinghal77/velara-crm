@@ -1,49 +1,110 @@
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
-import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
-import Dashboard from './pages/Dashboard';
-import LeadPipeline from './pages/LeadPipeline';
-import Inbox from './pages/Inbox';
-import Reminders from './pages/Reminders';
-import Analytics from './pages/Analytics';
-import Calling from './pages/Calling';
-import Documents from './pages/Documents';
-import Leaderboard from './pages/Leaderboard';
-import SocialMedia from './pages/SocialMedia';
-import Settings from './pages/Settings';
-import FieldOps from './pages/FieldOps';
+import Layout from './components/Layout';
 import Login from './pages/Login';
-import Comms from './pages/Comms';
-import Team from './pages/Team';
-import Workflows from './pages/Workflows';
-import Support from './pages/Support';
-import { initializeMockData } from './data/mockData';
 import { useCrmStore } from './store/useCrmStore';
+import type { Role } from './types/models';
 
+/**
+ * Routes are code-split. Every page used to be imported eagerly, which is why
+ * the production bundle was a single 1.06 MB chunk - a poor trade for an app
+ * that advertises low-bandwidth performance.
+ */
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const LeadPipeline = lazy(() => import('./pages/LeadPipeline'));
+const Inbox = lazy(() => import('./pages/Inbox'));
+const Comms = lazy(() => import('./pages/Comms'));
+const Reminders = lazy(() => import('./pages/Reminders'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Calling = lazy(() => import('./pages/Calling'));
+const Documents = lazy(() => import('./pages/Documents'));
+const Leaderboard = lazy(() => import('./pages/Leaderboard'));
+const SocialMedia = lazy(() => import('./pages/SocialMedia'));
+const Team = lazy(() => import('./pages/Team'));
+const Workflows = lazy(() => import('./pages/Workflows'));
+const Support = lazy(() => import('./pages/Support'));
+const Settings = lazy(() => import('./pages/Settings'));
+const FieldOps = lazy(() => import('./pages/FieldOps'));
+
+function FullPageSpinner({ label }: { label: string }) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
+      <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-gray-500">{label}</p>
+    </div>
+  );
+}
+
+function PageSpinner() {
+  return (
+    <div className="flex items-center justify-center py-24">
+      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
+/**
+ * Route guard. The check is still client-side (it has to be - it decides what
+ * to render), but it no longer *is* the security boundary: the access token
+ * lives in memory, the session is proven by an httpOnly cookie the page cannot
+ * read, and every API call is authorised server-side regardless of what the
+ * router decides to show.
+ */
 function RequireAuth() {
   const currentUser = useCrmStore((s) => s.currentUser);
-  if (!currentUser?.isLoggedIn) {
-    return <Navigate to="/login" replace />;
+  const isBootstrapping = useCrmStore((s) => s.isBootstrapping);
+
+  if (isBootstrapping) return <FullPageSpinner label="Restoring your session" />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+
+  return <Outlet />;
+}
+
+/** Blocks a page for roles that have no business seeing it. */
+function RequireRole({ allow }: { allow: Role[] }) {
+  const currentUser = useCrmStore((s) => s.currentUser);
+
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!allow.includes(currentUser.role)) {
+    return (
+      <div className="p-10 text-center">
+        <h2 className="text-lg font-semibold text-gray-900">Not available on your plan seat</h2>
+        <p className="mt-2 text-sm text-gray-500">
+          This section needs {allow.join(' or ')} access. Ask an admin if you need it.
+        </p>
+      </div>
+    );
   }
+
   return <Outlet />;
 }
 
 function LoginRoute() {
   const currentUser = useCrmStore((s) => s.currentUser);
-  if (currentUser?.isLoggedIn) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  const isBootstrapping = useCrmStore((s) => s.isBootstrapping);
+
+  if (isBootstrapping) return <FullPageSpinner label="Checking your session" />;
+  if (currentUser) return <Navigate to="/dashboard" replace />;
+
   return <Login />;
 }
 
+/** Wraps a lazy page in its own boundary so one broken page cannot blank the app. */
+function Page({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<PageSpinner />}>{children}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
 export default function App() {
-  const fetchInitialData = useCrmStore((s) => s.fetchInitialData);
+  const bootstrap = useCrmStore((s) => s.bootstrap);
 
   useEffect(() => {
-    initializeMockData();
-    fetchInitialData();
-  }, [fetchInitialData]);
+    void bootstrap();
+  }, [bootstrap]);
 
   return (
     <ErrorBoundary>
@@ -54,21 +115,28 @@ export default function App() {
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
-              <Route path="/leads" element={<ErrorBoundary><LeadPipeline /></ErrorBoundary>} />
-              <Route path="/inbox" element={<ErrorBoundary><Inbox /></ErrorBoundary>} />
-              <Route path="/comms" element={<ErrorBoundary><Comms /></ErrorBoundary>} />
-              <Route path="/reminders" element={<ErrorBoundary><Reminders /></ErrorBoundary>} />
-              <Route path="/analytics" element={<ErrorBoundary><Analytics /></ErrorBoundary>} />
-              <Route path="/calling" element={<ErrorBoundary><Calling /></ErrorBoundary>} />
-              <Route path="/documents" element={<ErrorBoundary><Documents /></ErrorBoundary>} />
-              <Route path="/leaderboard" element={<ErrorBoundary><Leaderboard /></ErrorBoundary>} />
-              <Route path="/social" element={<ErrorBoundary><SocialMedia /></ErrorBoundary>} />
-              <Route path="/team" element={<ErrorBoundary><Team /></ErrorBoundary>} />
-              <Route path="/workflows" element={<ErrorBoundary><Workflows /></ErrorBoundary>} />
-              <Route path="/support" element={<ErrorBoundary><Support /></ErrorBoundary>} />
-              <Route path="/settings" element={<ErrorBoundary><Settings /></ErrorBoundary>} />
-              <Route path="/fieldops" element={<ErrorBoundary><FieldOps /></ErrorBoundary>} />
+              <Route path="/dashboard" element={<Page><Dashboard /></Page>} />
+              <Route path="/leads" element={<Page><LeadPipeline /></Page>} />
+              <Route path="/inbox" element={<Page><Inbox /></Page>} />
+              <Route path="/comms" element={<Page><Comms /></Page>} />
+              <Route path="/reminders" element={<Page><Reminders /></Page>} />
+              <Route path="/calling" element={<Page><Calling /></Page>} />
+              <Route path="/documents" element={<Page><Documents /></Page>} />
+              <Route path="/leaderboard" element={<Page><Leaderboard /></Page>} />
+              <Route path="/social" element={<Page><SocialMedia /></Page>} />
+              <Route path="/support" element={<Page><Support /></Page>} />
+              <Route path="/fieldops" element={<Page><FieldOps /></Page>} />
+
+              {/* Reporting and team management are not for every seat. */}
+              <Route element={<RequireRole allow={['Admin', 'Manager']} />}>
+                <Route path="/analytics" element={<Page><Analytics /></Page>} />
+                <Route path="/team" element={<Page><Team /></Page>} />
+                <Route path="/workflows" element={<Page><Workflows /></Page>} />
+              </Route>
+
+              <Route element={<RequireRole allow={['Admin']} />}>
+                <Route path="/settings" element={<Page><Settings /></Page>} />
+              </Route>
             </Route>
           </Route>
 
