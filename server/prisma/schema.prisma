@@ -46,6 +46,69 @@ enum MessageDirection {
   received
 }
 
+/// Commercial tier. Limits per tier live in src/billing/plans.ts so they can be
+/// tuned without a migration; per-tenant exceptions go in Subscription.limitOverrides.
+enum PlanTier {
+  Trial
+  Business
+  Enterprise
+}
+
+enum SubscriptionStatus {
+  Trialing
+  Active
+  PastDue
+  Canceled
+  Suspended
+}
+
+/// Metered activity. Written append-only to UsageEvent and rolled up into
+/// UsageCounter for limit checks and billing.
+enum UsageKind {
+  ai_request
+  api_request
+  lead_created
+  message_sent
+  document_stored
+  workflow_run
+  seat_active
+}
+
+enum AttendanceMode {
+  Office
+  Remote
+  OnDuty
+  Leave
+}
+
+enum WorkflowTrigger {
+  lead_created
+  lead_status_changed
+  message_received
+  reminder_overdue
+  schedule
+}
+
+enum RunStatus {
+  Pending
+  Running
+  Succeeded
+  Failed
+  Skipped
+}
+
+enum McpTransport {
+  http
+  sse
+}
+
+enum ConnectionStatus {
+  Unchecked
+  Healthy
+  Unreachable
+  Unauthorized
+}
+
 // --- Tenancy ----------------------------------------------------------------
 
 model Organization {
@@ -62,6 +125,17 @@ model Organization {
   notifications Notification[]
   campaigns     FieldCampaign[]
   fieldTasks    FieldTask[]
+
+  subscription     Subscription?
+  usageEvents      UsageEvent[]
+  usageCounters    UsageCounter[]
+  apiKeys          ApiKey[]
+  mcpConnections   McpConnection[]
+  aiProviderConfig AiProviderConfig?
+  webhooks         WebhookEndpoint[]
+  attendance       AttendanceRecord[]
+  documents        Document[]
+  workflows        Workflow[]
 }
 
 // --- Identity ---------------------------------------------------------------
@@ -76,6 +150,11 @@ model User {
   role         Role      @default(Sales)
   isActive     Boolean   @default(true)
   permissions  String[]  @default([])
+  /// Grants access to the cross-tenant platform console. Deliberately separate
+  /// from `role`, which is scoped to one organisation: a tenant Admin must not
+  /// be able to escalate into seeing other customers. Set only by
+  /// `npm run platform:grant`, never through the app.
+  isPlatformAdmin Boolean @default(false)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
@@ -87,9 +166,11 @@ model User {
   notifications Notification[]
   fieldTasks    FieldTask[]
   refreshTokens RefreshToken[]
+  attendance    AttendanceRecord[]
 
   @@index([orgId])
   @@index([orgId, isActive])
+  @@index([isPlatformAdmin])
 }
 
 /// Refresh tokens are stored as SHA-256 hashes so a database leak cannot be
@@ -271,4 +352,311 @@ model FieldTask {
 
   @@index([orgId, campaignId])
   @@index([orgId, assignedToId])
+}
+
+// --- Commercial: subscription, metering, billing -----------------------------
+
+/// One row per tenant. Kept separate from Organization so billing state can be
+/// replaced (moving providers, re-plumbing Stripe) without touching identity.
+model Subscription {
+  id                   String             @id @default(uuid())
+  orgId                String             @unique
+  tier                 PlanTier           @default(Trial)
+  status               SubscriptionStatus @default(Trialing)
+  /// Per-tenant limit exceptions, e.g. {"ai_request": 50000}. Null means the
+  /// plan defaults in src/billing/plans.ts apply.
+  limitOverrides       Json?
+  /// When true, metered usage past the plan limit is allowed and billed as
+  /// overage rather than rejected with 402.
+  allowOverage         Boolean            @default(false)
+  seats                Int                @default(5)
+  trialEndsAt          DateTime?
+  currentPeriodStart   DateTime           @default(now())
+  currentPeriodEnd     DateTime
+  canceledAt           DateTime?
+
+  stripeCustomerId     String?            @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([status])
+  @@index([tier])
+  @@index([currentPeriodEnd])
+}
+
+/// Append-only metering log: the source of truth for what a tenant did.
+/// UsageCounter is a derived rollup and can be rebuilt from this.
+model UsageEvent {
+  id         String    @id @default(uuid())
+  orgId      String
+  kind       UsageKind
+  quantity   Int       @default(1)
+  /// Cost in paise for events with a direct cost, such as an AI call. Null
+  /// when the event is only counted.
+  costPaise  Int?
+  /// Context: model name, endpoint, token counts, api key id.
+  metadata   Json?
+  occurredAt DateTime  @default(now())
+
+  userId   String?
+  apiKeyId String?
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, kind, occurredAt])
+  @@index([orgId, occurredAt])
+  @@index([occurredAt])
+}
+
+/// Rollup per tenant / period / kind, incremented alongside the event so a
+/// limit check is one indexed read instead of an aggregate over the event log.
+model UsageCounter {
+  id          String    @id @default(uuid())
+  orgId       String
+  kind        UsageKind
+  periodStart DateTime
+  periodEnd   DateTime
+  quantity    Int       @default(0)
+  costPaise   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, kind, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model Invoice {
+  id              String    @id @default(uuid())
+  subscriptionId  String
+  orgId           String
+  periodStart     DateTime
+  periodEnd       DateTime
+  subtotalPaise   Int       @default(0)
+  overagePaise    Int       @default(0)
+  totalPaise      Int       @default(0)
+  currency        String    @default("INR")
+  status          String    @default("draft")
+  /// Snapshot of the metered lines this invoice was built from.
+  lineItems       Json?
+  stripeInvoiceId String?   @unique
+  issuedAt        DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, periodStart])
+  @@index([status])
+}
+
+/// Provider webhook deliveries, recorded before processing so a retried event
+/// is applied at most once.
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  provider    String    @default("stripe")
+  externalId  String
+  type        String
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  receivedAt  DateTime  @default(now())
+
+  @@unique([provider, externalId])
+  @@index([processedAt])
+}
+
+// --- Connectivity: API keys, MCP, AI providers, webhooks ---------------------
+
+/// Programmatic access. Only a hash is stored; the plaintext key is shown once
+/// at creation. `prefix` is the non-secret head used to identify a key in logs
+/// and in the UI without revealing it.
+model ApiKey {
+  id          String    @id @default(uuid())
+  orgId       String
+  name        String
+  prefix      String    @unique
+  keyHash     String    @unique
+  /// Granted scopes, e.g. ["leads:read", "leads:write"].
+  scopes      String[]  @default([])
+  lastUsedAt  DateTime?
+  lastUsedIp  String?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, revokedAt])
+}
+
+/// An outbound MCP server a tenant has connected, so their AI tooling can
+/// reach systems the CRM does not integrate with natively. Credentials are
+/// stored AES-256-GCM encrypted, never in plaintext.
+model McpConnection {
+  id               String           @id @default(uuid())
+  orgId            String
+  name             String
+  transport        McpTransport     @default(http)
+  url              String
+  /// Encrypted bearer token or header value. Null for open servers.
+  credentialEnc    String?
+  /// Header the credential travels in.
+  credentialHeader String           @default("Authorization")
+  enabled          Boolean          @default(true)
+  status           ConnectionStatus @default(Unchecked)
+  statusDetail     String?
+  /// Tool names seen on the last successful handshake.
+  discoveredTools  String[]         @default([])
+  lastCheckedAt    DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, name])
+  @@index([orgId, enabled])
+}
+
+/// Bring-your-own AI credentials per tenant. When absent the platform key is
+/// used, and that usage is metered against the plan.
+model AiProviderConfig {
+  id                 String   @id @default(uuid())
+  orgId              String   @unique
+  provider           String   @default("gemini")
+  apiKeyEnc          String?
+  model              String   @default("gemini-2.5-flash")
+  visionModel        String   @default("gemini-2.5-flash")
+  enabled            Boolean  @default(true)
+  /// Monthly ceiling in paise for tenant-funded spend; null means unlimited.
+  monthlyBudgetPaise Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+/// Outbound webhooks so tenants can push CRM events into their own systems.
+model WebhookEndpoint {
+  id            String    @id @default(uuid())
+  orgId         String
+  url           String
+  /// Event names to deliver, e.g. ["lead.created", "lead.status_changed"].
+  events        String[]  @default([])
+  /// Encrypted signing secret; every delivery carries an HMAC of the body.
+  secretEnc     String
+  enabled       Boolean   @default(true)
+  failureCount  Int       @default(0)
+  lastAttemptAt DateTime?
+  lastStatus    Int?
+  createdAt     DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, enabled])
+}
+
+// --- Feature backends: attendance, documents, workflows ----------------------
+
+/// One row per user per day. Clock-in/out and working mode are recorded here
+/// rather than held in component state.
+model AttendanceRecord {
+  id            String         @id @default(uuid())
+  orgId         String
+  userId        String
+  /// The local calendar day in the org timezone, stored as that day's midnight
+  /// so a day can be found by equality.
+  day           DateTime
+  mode          AttendanceMode @default(Office)
+  clockInAt     DateTime?
+  clockOutAt    DateTime?
+  /// Worked minutes, recomputed on clock-out.
+  workedMinutes Int            @default(0)
+  clockInLat    Float?
+  clockInLng    Float?
+  note          String         @default("")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([orgId, day])
+  @@index([orgId, userId, day])
+}
+
+model Document {
+  id            String    @id @default(uuid())
+  orgId         String
+  name          String
+  category      String    @default("Contracts")
+  mimeType      String
+  sizeBytes     Int
+  /// Object-storage key once storage is wired; until then small files are held
+  /// inline. Exactly one of these is set.
+  storageKey    String?
+  inlineData    String?
+  /// Text pulled out of the file, for search and AI grounding.
+  extractedText String?
+  leadId        String?
+  uploadedById  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, category])
+  @@index([orgId, leadId])
+  @@index([orgId, createdAt])
+}
+
+model Workflow {
+  id          String          @id @default(uuid())
+  orgId       String
+  name        String
+  description String          @default("")
+  trigger     WorkflowTrigger
+  /// Conditions the trigger payload must satisfy, e.g. {"status": "Qualified"}.
+  conditions  Json?
+  /// Ordered actions, e.g. [{"type": "create_reminder", "offsetDays": 2}].
+  actions     Json
+  enabled     Boolean         @default(true)
+  lastRunAt   DateTime?
+  runCount    Int             @default(0)
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  org  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  runs WorkflowRun[]
+
+  @@unique([orgId, name])
+  @@index([orgId, enabled, trigger])
+}
+
+model WorkflowRun {
+  id          String    @id @default(uuid())
+  orgId       String
+  workflowId  String
+  status      RunStatus @default(Pending)
+  /// The event that started the run.
+  triggerData Json?
+  /// Per-action outcome, for the run detail view.
+  log         Json?
+  error       String?
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, startedAt])
+  @@index([workflowId, startedAt])
 }

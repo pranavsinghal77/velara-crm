@@ -21,17 +21,46 @@ import { logger } from '../utils/logger';
 
 const REQUEST_TIMEOUT_MS = 20_000;
 
-const client = env.aiEnabled ? new GoogleGenerativeAI(env.GEMINI_API_KEY) : null;
+const platformClient = env.aiEnabled ? new GoogleGenerativeAI(env.GEMINI_API_KEY) : null;
 
-export const aiAvailable = () => client !== null;
+/**
+ * Which credential a request runs on.
+ *
+ * A tenant that supplies its own key pays its own provider bill, so that usage
+ * is recorded at zero cost and is not charged against the plan's AI allowance.
+ * Requests on the platform key are metered and billed.
+ */
+export interface AiCredential {
+  apiKey?: string;
+  model?: string;
+  visionModel?: string;
+  /** True when running on the tenant's own key. */
+  tenantFunded: boolean;
+}
 
-function assertAvailable(): GoogleGenerativeAI {
-  if (!client) {
+export const aiAvailable = () => platformClient !== null;
+
+/** Per-tenant clients are cached so a hot tenant is not re-instantiating one. */
+const tenantClients = new Map<string, GoogleGenerativeAI>();
+
+function clientFor(credential?: AiCredential): GoogleGenerativeAI {
+  if (credential?.apiKey) {
+    let cached = tenantClients.get(credential.apiKey);
+    if (!cached) {
+      cached = new GoogleGenerativeAI(credential.apiKey);
+      // Bounded so a long-lived process cannot accumulate clients forever.
+      if (tenantClients.size > 200) tenantClients.clear();
+      tenantClients.set(credential.apiKey, cached);
+    }
+    return cached;
+  }
+
+  if (!platformClient) {
     throw serviceUnavailable(
-      'AI features are not configured on this server. Set GEMINI_API_KEY to enable them.'
+      'AI features are not configured. Add your own provider key in Settings, or ask your administrator to configure one.'
     );
   }
-  return client;
+  return platformClient;
 }
 
 function withTimeout<T>(work: Promise<T>, label: string): Promise<T> {
@@ -68,8 +97,13 @@ export function asUntrustedInput(label: string, value: string): string {
   ].join('\n');
 }
 
-export async function generateText(prompt: string): Promise<string> {
-  const model = assertAvailable().getGenerativeModel({ model: env.GEMINI_MODEL });
+export async function generateText(
+  prompt: string,
+  credential?: AiCredential
+): Promise<string> {
+  const model = clientFor(credential).getGenerativeModel({
+    model: credential?.model ?? env.GEMINI_MODEL,
+  });
 
   try {
     const result = await withTimeout(model.generateContent(prompt), 'AI request');
@@ -89,9 +123,13 @@ export async function generateText(prompt: string): Promise<string> {
  * Ask for JSON, then validate it. A response that does not match the schema is
  * an error, not something to silently substitute a plausible default for.
  */
-export async function generateJson<T>(prompt: string, schema: ZodType<T>): Promise<T> {
-  const model = assertAvailable().getGenerativeModel({
-    model: env.GEMINI_MODEL,
+export async function generateJson<T>(
+  prompt: string,
+  schema: ZodType<T>,
+  credential?: AiCredential
+): Promise<T> {
+  const model = clientFor(credential).getGenerativeModel({
+    model: credential?.model ?? env.GEMINI_MODEL,
     generationConfig: { responseMimeType: 'application/json', temperature: 0.4 },
   });
 
@@ -119,10 +157,11 @@ export async function generateJson<T>(prompt: string, schema: ZodType<T>): Promi
 export async function generateJsonFromImage<T>(
   prompt: string,
   dataUrl: string,
-  schema: ZodType<T>
+  schema: ZodType<T>,
+  credential?: AiCredential
 ): Promise<T> {
-  const model = assertAvailable().getGenerativeModel({
-    model: env.GEMINI_VISION_MODEL,
+  const model = clientFor(credential).getGenerativeModel({
+    model: credential?.visionModel ?? env.GEMINI_VISION_MODEL,
     generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
   });
 

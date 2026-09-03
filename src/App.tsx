@@ -27,6 +27,12 @@ const Support = lazy(() => import('./pages/Support'));
 const Settings = lazy(() => import('./pages/Settings'));
 const FieldOps = lazy(() => import('./pages/FieldOps'));
 
+// Operator console. Its own chunk, so tenant users never download it.
+const PlatformLayout = lazy(() => import('./pages/platform/PlatformLayout'));
+const PlatformOverview = lazy(() => import('./pages/platform/PlatformOverview'));
+const TenantList = lazy(() => import('./pages/platform/TenantList'));
+const TenantDetail = lazy(() => import('./pages/platform/TenantDetail'));
+
 function FullPageSpinner({ label }: { label: string }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
@@ -76,6 +82,24 @@ function RequireRole({ allow }: { allow: Role[] }) {
       </div>
     );
   }
+
+  return <Outlet />;
+}
+
+/**
+ * Gate for the operator console. The flag comes from the server on every
+ * session bootstrap, and the API re-checks it per request, so this only decides
+ * what to render.
+ */
+function RequirePlatformAdmin() {
+  const currentUser = useCrmStore((s) => s.currentUser);
+  const isBootstrapping = useCrmStore((s) => s.isBootstrapping);
+
+  if (isBootstrapping) return <FullPageSpinner label="Checking your access" />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  // Deliberately a redirect, not an explanation: a tenant user has no reason to
+  // learn that a cross-tenant console exists.
+  if (!currentUser.isPlatformAdmin) return <Navigate to="/dashboard" replace />;
 
   return <Outlet />;
 }
@@ -137,6 +161,23 @@ export default function App() {
               <Route element={<RequireRole allow={['Admin']} />}>
                 <Route path="/settings" element={<Page><Settings /></Page>} />
               </Route>
+            </Route>
+          </Route>
+
+          {/* Operator console: outside the tenant Layout, since it is not
+              scoped to one workspace. */}
+          <Route element={<RequirePlatformAdmin />}>
+            <Route
+              path="/platform"
+              element={
+                <Page>
+                  <PlatformLayout />
+                </Page>
+              }
+            >
+              <Route index element={<Page><PlatformOverview /></Page>} />
+              <Route path="tenants" element={<Page><TenantList /></Page>} />
+              <Route path="tenants/:id" element={<Page><TenantDetail /></Page>} />
             </Route>
           </Route>
 

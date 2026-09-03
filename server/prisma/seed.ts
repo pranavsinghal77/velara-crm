@@ -13,7 +13,14 @@
  * organisation first.
  */
 import crypto from 'crypto';
-import { LeadStatus, Priority, PrismaClient, Role } from '@prisma/client';
+import {
+  LeadStatus,
+  PlanTier,
+  Priority,
+  PrismaClient,
+  Role,
+  SubscriptionStatus,
+} from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
 import { Pool } from 'pg';
@@ -71,6 +78,24 @@ async function main() {
     where: { slug: ORG_SLUG },
     update: {},
     create: { name: 'Velara Demo Co', slug: ORG_SLUG },
+  });
+
+  // Every organisation must have a subscription: it is what makes the tenant
+  // metered and billable. Creating one is an invariant of tenant creation, not
+  // something that waits for the first usage event.
+  const periodStart = new Date();
+  const periodEnd = new Date(periodStart.getTime() + 30 * 86_400_000);
+  await prisma.subscription.upsert({
+    where: { orgId: org.id },
+    update: {},
+    create: {
+      orgId: org.id,
+      tier: PlanTier.Business,
+      status: SubscriptionStatus.Active,
+      seats: 50,
+      currentPeriodStart: periodStart,
+      currentPeriodEnd: periodEnd,
+    },
   });
 
   // --- Users ---------------------------------------------------------------

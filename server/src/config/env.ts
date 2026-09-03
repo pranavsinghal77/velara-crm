@@ -34,6 +34,19 @@ const schema = z.object({
     .transform((v) => v === 'true' || v === '1'),
   APP_TIMEZONE: z.string().default('Asia/Kolkata'),
 
+  /**
+   * 32 bytes, base64. Encrypts stored credentials (tenant AI keys, MCP tokens,
+   * webhook secrets). Optional so an install with none of those features still
+   * boots; the encryption helpers fail loudly if something needs it.
+   * Generate: openssl rand -base64 32
+   */
+  ENCRYPTION_KEY: z.string().default(''),
+
+  /** Billing. Leave blank to run the metering and plan logic without Stripe. */
+  STRIPE_SECRET_KEY: z.string().default(''),
+  STRIPE_WEBHOOK_SECRET: z.string().default(''),
+  STRIPE_API_BASE: z.string().default('https://api.stripe.com'),
+
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),
@@ -66,6 +79,8 @@ export const env = {
     .map((o) => o.trim())
     .filter(Boolean),
   aiEnabled: raw.GEMINI_API_KEY.length > 0,
+  encryptionEnabled: raw.ENCRYPTION_KEY.length > 0,
+  billingEnabled: raw.STRIPE_SECRET_KEY.length > 0,
 } as const;
 
 export type Env = typeof env;

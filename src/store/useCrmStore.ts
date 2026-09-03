@@ -104,6 +104,7 @@ interface LoginResponse {
     email: string;
     role: AuthUser['role'];
     permissions: string[];
+    isPlatformAdmin?: boolean;
   };
 }
 

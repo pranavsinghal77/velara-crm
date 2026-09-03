@@ -1,0 +1,11 @@
+{
+  // Typechecks everything, including the CLI scripts and the seeder, which the
+  // build config deliberately excludes because they are run with tsx and must
+  // not land in dist/. No rootDir here, so files outside src/ are allowed.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src", "scripts", "prisma"]
+}

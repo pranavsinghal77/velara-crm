@@ -28,6 +28,11 @@ export function serializeUser(user: User) {
     permissions: user.permissions,
     avatar: user.avatar ?? undefined,
     lastLoginAt: user.lastLoginAt?.toISOString() ?? null,
+    // Lets the client decide whether to offer the platform console. It is not
+    // what authorises access - every /api/platform request is checked against
+    // the database - but hiding a link the user cannot use is better UX than
+    // showing one that 403s.
+    isPlatformAdmin: user.isPlatformAdmin,
   };
 }
 
@@ -151,4 +156,24 @@ export function parseBudgetToLakhs(budget?: string | null): number {
   if (lower.includes('l')) return numeric;
   // A bare number is rupees; convert to lakhs.
   return numeric / 100_000;
+}
+
+/**
+ * Stage-weighted value of a set of open leads, in INR lakhs.
+ *
+ * Shared by the MCP pipeline_summary tool and the analytics endpoint so both
+ * report the same number; the weights mirror the ones the Analytics page
+ * documents to the user.
+ */
+const STAGE_WEIGHT: Record<string, number> = {
+  New: 0.1,
+  Contacted: 0.2,
+  Qualified: 0.4,
+  Negotiation: 0.7,
+};
+
+export function leadValueLakhsFromRow(
+  rows: { status: string; budgetLakhs: number }[]
+): number {
+  return rows.reduce((sum, r) => sum + r.budgetLakhs * (STAGE_WEIGHT[r.status] ?? 0), 0);
 }

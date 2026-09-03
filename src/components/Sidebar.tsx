@@ -17,6 +17,7 @@ import {
   Workflow,
   Headset,
   MapPin,
+  ShieldCheck,
 } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
@@ -63,6 +64,9 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ];
 
   const showSettings = user?.role === 'Admin' || user?.role === 'Manager';
+  // Cross-tenant console. Shown only to platform operators; the API authorises
+  // it independently, so hiding the link is convenience, not security.
+  const showPlatform = user?.isPlatformAdmin === true;
 
   const roleColor: Record<string, string> = {
     Admin: 'bg-red-500/20 text-red-400',
@@ -179,6 +183,27 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 style={{ width: isCollapsed ? '0' : 'auto', opacity: isCollapsed ? 0 : 1 }}
               >
                 Settings
+              </span>
+            </NavLink>
+          )}
+
+          {showPlatform && (
+            <NavLink
+              to="/platform"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mx-2 my-1 group border ${
+                  isActive
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                    : 'border-amber-500/20 text-amber-400/80 hover:bg-amber-500/10 hover:text-amber-300'
+                }`
+              }
+            >
+              <ShieldCheck className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+              <span
+                className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
+                style={{ width: isCollapsed ? '0' : 'auto', opacity: isCollapsed ? 0 : 1 }}
+              >
+                Platform Console
               </span>
             </NavLink>
           )}

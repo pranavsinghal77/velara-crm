@@ -134,6 +134,11 @@ export interface AuthUser {
   role: Role;
   permissions: string[];
   /**
+   * Cross-tenant operator. Only decides whether the console link is offered —
+   * every /api/platform request is authorised server-side against the database.
+   */
+  isPlatformAdmin?: boolean;
+  /**
    * Kept for the existing call sites, but it is no longer what protects a
    * route: the guard requires a live server session, and this object is not
    * persisted anywhere the user can edit it.
