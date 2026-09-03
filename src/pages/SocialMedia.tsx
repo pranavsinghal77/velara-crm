@@ -1,5 +1,15 @@
-import { useState, useMemo } from 'react';
-import { Share2, Plus, Users, Heart, FileText, Sparkles, TrendingUp } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Plus,
+  Share2,
+  Users,
+} from 'lucide-react';
+import { ApiError } from '../lib/api';
+import { socialApi, type SocialConnection, type SocialPost } from '../lib/social';
 
 import PostCreator from './social/PostCreator';
 import ContentCalendar from './social/ContentCalendar';
@@ -8,18 +18,27 @@ import TrendingIdeas from './social/TrendingIdeas';
 
 import { SCHEDULED_POSTS, FEED_POSTS, MARCH_START_OFFSET, MARCH_DAYS } from './social/types';
 import type { Platform, FeedFilter, ScheduledPost } from './social/types';
-import { PLATFORM_CONFIG } from './social/platforms';
 
 export default function SocialMedia() {
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(['IG', 'FB', 'LI']);
+  // Connections are the source of truth for what can be posted to; the page no
+  // longer assumes a fixed set of platforms is available.
+  const [connections, setConnections] = useState<SocialConnection[]>([]);
+  const [posts, setPosts] = useState<SocialPost[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [loaded, setLoaded] = useState(false);
+
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [topic, setTopic] = useState('');
   const [postSuccess, setPostSuccess] = useState('');
+  const [postError, setPostError] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [schedDate, setSchedDate] = useState('2026-03-12');
   const [schedTime, setSchedTime] = useState('10:00');
   const [schedConfirmed, setSchedConfirmed] = useState('');
 
+  const [pendingCaption, setPendingCaption] = useState('');
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('All');
   const [scheduledList, setScheduledList] = useState<ScheduledPost[]>(SCHEDULED_POSTS);
 
@@ -30,26 +49,130 @@ export default function SocialMedia() {
     [feedFilter],
   );
 
-  function togglePlatform(p: Platform) {
-    setSelectedPlatforms((prev) =>
-      prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p],
-    );
+  const load = useCallback(async () => {
+    try {
+      const [conns, existing] = await Promise.all([socialApi.connections(), socialApi.posts()]);
+      setConnections(conns);
+      setPosts(existing);
+      setLoadError('');
+      // Preselect the default target per platform, so the common case is one click.
+      setSelectedIds((prev) =>
+        prev.length > 0
+          ? prev.filter((id) => conns.some((c) => c.id === id))
+          : conns
+              .filter((c) => c.isDefault && c.status === 'Connected' && !c.capabilities.messaging)
+              .map((c) => c.id)
+      );
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : 'Could not load social channels.');
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  function toggleConnection(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  function handlePostNow() {
-    const names = selectedPlatforms.map((p) => PLATFORM_CONFIG[p].label).join(', ');
-    setPostSuccess(`✅ Posted to ${names}!`);
-    setTimeout(() => setPostSuccess(''), 3000);
+  /**
+   * Publishes for real and reports what each platform did.
+   *
+   * The previous handler set the string "Posted to Instagram, Facebook,
+   * LinkedIn!" without calling anything. This one reads the per-target result
+   * the server returns, so a partial success says which account failed and why.
+   */
+  async function handlePostNow(caption: string) {
+    setIsPublishing(true);
+    setPostSuccess('');
+    setPostError('');
+
+    try {
+      const post = await socialApi.createPost({ body: caption, connectionIds: selectedIds });
+
+      const ok = post.targets.filter((t) => t.status === 'Published');
+      const failed = post.targets.filter((t) => t.status === 'Failed');
+
+      if (ok.length > 0) {
+        setPostSuccess(
+          `Published to ${ok.map((t) => t.handle).join(', ')}.` +
+            (failed.length > 0 ? '' : ' View it on the platform from the post history below.')
+        );
+      }
+      if (failed.length > 0) {
+        setPostError(
+          failed.map((t) => `${t.handle}: ${t.error ?? 'failed'}`).join('\n')
+        );
+      }
+
+      await load();
+    } catch (err) {
+      setPostError(err instanceof ApiError ? err.message : 'Could not publish the post.');
+    } finally {
+      setIsPublishing(false);
+    }
   }
 
-  function handleScheduleConfirm() {
-    const d = new Date(schedDate + 'T' + schedTime);
-    const label = d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    setSchedConfirmed(`✅ Scheduled for ${label}`);
-    setTimeout(() => { setSchedConfirmed(''); setShowScheduleModal(false); }, 2000);
+  function handleOpenSchedule(caption: string) {
+    setPendingCaption(caption);
+    setShowScheduleModal(true);
+  }
+
+  /** Schedules the post server-side so it survives a page close. */
+  async function handleScheduleConfirm() {
+    setIsPublishing(true);
+    setPostError('');
+    try {
+      const when = new Date(`${schedDate}T${schedTime}`);
+      await socialApi.createPost({
+        body: pendingCaption,
+        connectionIds: selectedIds,
+        scheduledAt: when.toISOString(),
+      });
+      setSchedConfirmed(
+        `Scheduled for ${when.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
+      );
+      await load();
+      setTimeout(() => {
+        setSchedConfirmed('');
+        setShowScheduleModal(false);
+      }, 1800);
+    } catch (err) {
+      setPostError(err instanceof ApiError ? err.message : 'Could not schedule the post.');
+      setShowScheduleModal(false);
+    } finally {
+      setIsPublishing(false);
+    }
   }
 
   function deleteScheduled(id: string) { setScheduledList((prev) => prev.filter((s) => s.id !== id)); }
+
+  // Accounts that can actually receive a feed post.
+  const postableConnections = useMemo(
+    () => connections.filter((c) => !c.capabilities.messaging),
+    [connections]
+  );
+
+  const connectedPlatformCount = useMemo(
+    () => new Set(postableConnections.filter((c) => c.status === 'Connected').map((c) => c.platform)).size,
+    [postableConnections]
+  );
+
+  const publishedCount = posts.filter(
+    (p) => p.status === 'Published' || p.status === 'PartiallyPublished'
+  ).length;
+  const scheduledCount = posts.filter((p) => p.status === 'Scheduled').length;
+  const attentionCount =
+    posts.filter((p) => p.status === 'Failed' || p.status === 'PartiallyPublished').length +
+    connections.filter((c) => c.status !== 'Connected').length;
+
+  const selectedHandles = useMemo(
+    () => connections.filter((c) => selectedIds.includes(c.id)).map((c) => c.handle),
+    [connections, selectedIds]
+  );
 
   const calCells = useMemo(() => {
     const cells: Array<number | null> = Array(MARCH_START_OFFSET).fill(null);
@@ -94,14 +217,44 @@ export default function SocialMedia() {
         </div>
       </div>
 
-      {/* ═══ SECTION 2 — STATS ROW ══════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      {/* Connection state, and what to do about it. */}
+      {loaded && loadError && (
+        <div role="alert" className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+          <span className="text-xs text-red-800">{loadError}</span>
+        </div>
+      )}
+
+      {loaded && !loadError && postableConnections.length === 0 && (
+        <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">No publishing accounts connected</p>
+            <p className="text-xs text-amber-800 mt-0.5">
+              Composing works, but nothing can be published until an account is linked. Connections
+              are real OAuth grants on each platform.
+            </p>
+            <Link
+              to="/settings"
+              className="inline-block mt-2 text-xs font-semibold text-amber-900 underline"
+            >
+              Open Settings to connect an account
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ SECTION 2 — STATS ROW ══════════════════════════
+          Counts of things this workspace actually has. The previous row showed
+          invented figures (12.4K followers, 4.8% engagement, 48.2K reach);
+          follower and reach numbers need per-platform insights calls, which
+          are not wired up, so they are not shown rather than guessed. */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {([
-          { label: 'Total Followers',   value: '12.4K', Icon: Users,      bg: 'bg-blue-50',   ic: 'text-blue-600',   sub: '+234 this week'       },
-          { label: 'Avg Engagement',    value: '4.8%',  Icon: Heart,      bg: 'bg-pink-50',   ic: 'text-pink-600',   sub: 'Above industry avg'   },
-          { label: 'Posts This Month',  value: '18',    Icon: FileText,   bg: 'bg-amber-50',  ic: 'text-amber-600',  sub: '6 scheduled'           },
-          { label: 'AI Generated',      value: '12',    Icon: Sparkles,   bg: 'bg-purple-50', ic: 'text-purple-600', sub: '67% of all posts'      },
-          { label: 'Total Reach',       value: '48.2K', Icon: TrendingUp, bg: 'bg-green-50',  ic: 'text-green-600',  sub: '+18% vs last month'    },
+          { label: 'Connected accounts', value: String(postableConnections.length), Icon: Users,        bg: 'bg-blue-50',    ic: 'text-blue-600',    sub: `across ${connectedPlatformCount} platform${connectedPlatformCount === 1 ? '' : 's'}` },
+          { label: 'Published',          value: String(publishedCount),             Icon: CheckCircle2, bg: 'bg-green-50',   ic: 'text-green-600',   sub: 'posts sent from Velara' },
+          { label: 'Scheduled',          value: String(scheduledCount),             Icon: Clock,        bg: 'bg-amber-50',   ic: 'text-amber-600',   sub: 'waiting to publish' },
+          { label: 'Needs attention',    value: String(attentionCount),             Icon: AlertTriangle, bg: 'bg-red-50',    ic: 'text-red-600',     sub: 'failed or expired' },
         ]).map((c) => (
           <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
             <div className="flex justify-between items-start mb-2">
@@ -123,13 +276,16 @@ export default function SocialMedia() {
         {/* ─── LEFT: AI POST CREATOR lg:col-span-5 ─────────── */}
         <div className="lg:col-span-5">
           <PostCreator
-            selectedPlatforms={selectedPlatforms}
-            togglePlatform={togglePlatform}
+            connections={connections}
+            selectedIds={selectedIds}
+            toggleConnection={toggleConnection}
             topic={topic}
             setTopic={setTopic}
-            handlePostNow={handlePostNow}
-            setShowScheduleModal={setShowScheduleModal}
+            onPublish={handlePostNow}
+            onSchedule={handleOpenSchedule}
+            isPublishing={isPublishing}
             postSuccess={postSuccess}
+            postError={postError}
           />
         </div>
 
@@ -148,7 +304,7 @@ export default function SocialMedia() {
             setSchedTime={setSchedTime}
             schedConfirmed={schedConfirmed}
             handleScheduleConfirm={handleScheduleConfirm}
-            selectedPlatforms={selectedPlatforms}
+            selectedPlatforms={selectedHandles}
           />
         </div>
 
@@ -161,7 +317,10 @@ export default function SocialMedia() {
           />
           <TrendingIdeas
             setTopic={setTopic}
-            handlePostNow={handlePostNow}
+            onUseIdea={() => {
+              setPostSuccess('');
+              setPostError('');
+            }}
           />
         </div>
       </div>

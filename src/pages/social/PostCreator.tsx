@@ -1,29 +1,37 @@
 import { useState } from 'react';
 
 import { Sparkles, Copy, RefreshCw, X, Zap, Calendar } from 'lucide-react';
-import { TONES, LANGS, PLATFORMS, QUICK_TOPICS, DEFAULT_HASHTAGS, GENERATED_CAPTION } from './types';
-import type { Platform, Tone, Language } from './types';
-import { PlatformIcon } from './shared';
-import { PLATFORM_CONFIG } from './platforms';
+import { Link } from 'react-router-dom';
+import { TONES, LANGS, QUICK_TOPICS, DEFAULT_HASHTAGS, GENERATED_CAPTION } from './types';
+import type { Tone, Language } from './types';
+import { PLATFORM_BRAND, type SocialConnection } from '../../lib/social';
 
 interface PostCreatorProps {
-  selectedPlatforms: Platform[];
-  togglePlatform: (p: Platform) => void;
+  /** Accounts with a live grant. A post targets accounts, not platforms. */
+  connections: SocialConnection[];
+  selectedIds: string[];
+  toggleConnection: (id: string) => void;
   topic: string;
   setTopic: (t: string) => void;
-  handlePostNow: () => void;
-  setShowScheduleModal: (s: boolean) => void;
+  /** Publishes the caption to the selected accounts. */
+  onPublish: (caption: string) => Promise<void>;
+  onSchedule: (caption: string) => void;
+  isPublishing: boolean;
   postSuccess: string;
+  postError: string;
 }
 
 export default function PostCreator({
-  selectedPlatforms,
-  togglePlatform,
+  connections,
+  selectedIds,
+  toggleConnection,
   topic,
   setTopic,
-  handlePostNow,
-  setShowScheduleModal,
+  onPublish,
+  onSchedule,
+  isPublishing,
   postSuccess,
+  postError,
 }: PostCreatorProps) {
   const [tone, setTone] = useState<Tone>('Professional');
   const [language, setLanguage] = useState<Language>('English');
@@ -49,11 +57,32 @@ export default function PostCreator({
   function copyCaption() { void navigator.clipboard.writeText(caption); }
 
   const charCount = caption.length;
-  const charWarning = selectedPlatforms.includes('X') && charCount > 280
-    ? '⚠️ Over X limit (280)'
-    : selectedPlatforms.includes('IG') && charCount > 2200
-      ? '⚠️ Over Instagram limit (2200)'
-      : null;
+
+  // The binding limit is the tightest one among the accounts actually
+  // selected, read from the capabilities the server reports rather than
+  // hardcoded per platform here.
+  const selected = connections.filter((c) => selectedIds.includes(c.id));
+  const tightest = selected
+    .map((c) => ({ label: c.label, max: c.capabilities.maxChars }))
+    .filter((c): c is { label: string; max: number } => typeof c.max === 'number')
+    .sort((a, b) => a.max - b.max)[0];
+
+  const overLimit = tightest ? charCount > tightest.max : false;
+  const charWarning = tightest && overLimit
+    ? `Over the ${tightest.label} limit (${tightest.max})`
+    : null;
+
+  // Instagram has no text-only post type, so say so before the attempt rather
+  // than letting the provider reject it.
+  const needsImage = selected.filter((c) => c.capabilities.imageRequired);
+  const blockedReason =
+    selected.length === 0
+      ? 'Choose at least one account'
+      : charWarning
+        ? charWarning
+        : needsImage.length > 0
+          ? `${needsImage.map((c) => c.label).join(', ')} requires an image, which this composer cannot attach yet`
+          : null;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
@@ -67,29 +96,62 @@ export default function PostCreator({
       </div>
 
       <div className="p-4 flex flex-col gap-4">
-        {/* Platform selector */}
+        {/* Account selector. Only accounts with a live grant appear here, so
+            there is no way to aim a post at a platform that is not connected. */}
         <div>
           <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1.5">Post to</p>
-          <div className="flex flex-wrap gap-2">
-            {PLATFORMS.map((p) => {
-              const cfg = PLATFORM_CONFIG[p];
-              const active = selectedPlatforms.includes(p);
-              return (
-                <button
-                  key={p}
-                  onClick={() => togglePlatform(p)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                    active
-                      ? cfg.selectedCls
-                      : 'border border-slate-200 text-slate-500 hover:border-slate-300'
-                  }`}
-                >
-                  <PlatformIcon p={p} size={11} />
-                  {cfg.label}
-                </button>
-              );
-            })}
-          </div>
+
+          {connections.length === 0 ? (
+            <div className="border border-dashed border-slate-200 rounded-lg p-4 text-center">
+              <p className="text-xs text-slate-500">No social accounts are connected yet.</p>
+              <Link
+                to="/settings"
+                className="inline-block mt-2 text-xs font-semibold text-blue-600 hover:underline"
+              >
+                Connect an account in Settings
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {connections.map((conn) => {
+                const brand = PLATFORM_BRAND[conn.platform];
+                const active = selectedIds.includes(conn.id);
+                const usable = conn.status === 'Connected' && !conn.capabilities.messaging;
+
+                return (
+                  <button
+                    key={conn.id}
+                    onClick={() => usable && toggleConnection(conn.id)}
+                    disabled={!usable}
+                    title={
+                      conn.capabilities.messaging
+                        ? `${conn.label} is a messaging channel, not a feed`
+                        : conn.status !== 'Connected'
+                          ? `${conn.handle} needs reconnecting`
+                          : conn.handle
+                    }
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-colors ${
+                      !usable
+                        ? 'border-slate-100 text-slate-300 cursor-not-allowed'
+                        : active
+                          ? `${brand.ring} ${brand.text}`
+                          : 'border-slate-200 text-slate-500 hover:border-slate-300'
+                    }`}
+                  >
+                    <span
+                      className={`w-4 h-4 rounded-full ${usable ? brand.iconBg : 'bg-slate-200'} text-white text-[8px] font-bold flex items-center justify-center`}
+                    >
+                      {brand.short}
+                    </span>
+                    <span className="truncate max-w-[120px]">{conn.handle}</span>
+                    {conn.status !== 'Connected' && (
+                      <span className="text-[9px] font-semibold text-amber-600">{conn.status}</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Topic textarea */}
@@ -202,24 +264,46 @@ export default function PostCreator({
               {charWarning && <span className="text-amber-600 font-medium">{charWarning}</span>}
             </div>
 
-            {/* Post success toast */}
+            {/* Outcome of the real publish attempt, reported per account. */}
             {postSuccess && (
-              <div className="bg-green-50 border border-green-200 text-green-700 text-sm font-medium rounded-lg px-4 py-2.5 text-center">
+              <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-lg px-4 py-2.5 whitespace-pre-line">
                 {postSuccess}
               </div>
+            )}
+            {postError && (
+              <div
+                role="alert"
+                className="bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg px-4 py-2.5 whitespace-pre-line"
+              >
+                {postError}
+              </div>
+            )}
+
+            {/* Why the buttons are disabled, instead of a silent no-op. */}
+            {blockedReason && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                {blockedReason}
+              </p>
             )}
 
             {/* Post Now / Schedule */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={handlePostNow}
-                className="py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                onClick={() => void onPublish(caption)}
+                disabled={Boolean(blockedReason) || isPublishing}
+                className="py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Zap className="w-4 h-4" /> Post Now
+                {isPublishing ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Zap className="w-4 h-4" />
+                )}
+                {isPublishing ? 'Publishing...' : 'Post Now'}
               </button>
               <button
-                onClick={() => setShowScheduleModal(true)}
-                className="py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors"
+                onClick={() => onSchedule(caption)}
+                disabled={Boolean(blockedReason) || isPublishing}
+                className="py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Calendar className="w-4 h-4" /> Schedule
               </button>

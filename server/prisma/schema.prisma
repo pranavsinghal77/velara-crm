@@ -136,6 +136,8 @@ model Organization {
   attendance       AttendanceRecord[]
   documents        Document[]
   workflows        Workflow[]
+  socialConnections SocialConnection[]
+  socialPosts      SocialPost[]
 }
 
 // --- Identity ---------------------------------------------------------------
@@ -659,4 +661,142 @@ model WorkflowRun {
 
   @@index([orgId, startedAt])
   @@index([workflowId, startedAt])
+}
+
+// --- Social channels --------------------------------------------------------
+
+enum SocialPlatform {
+  instagram
+  facebook
+  linkedin
+  x
+  whatsapp
+}
+
+enum SocialConnectionStatus {
+  Connected
+  /// The access token has passed its expiry and no refresh token is stored, or
+  /// the refresh attempt failed. The tenant must reconnect.
+  Expired
+  /// The provider reported the grant as revoked (user removed the app).
+  Revoked
+  /// The last call failed for a reason other than auth.
+  Error
+}
+
+enum SocialPostStatus {
+  Draft
+  Scheduled
+  Publishing
+  Published
+  /// Published to some targets but not others; per-target detail is in results.
+  PartiallyPublished
+  Failed
+  Canceled
+}
+
+/// One connected account on one platform.
+///
+/// Tokens are AES-256-GCM encrypted, never stored in plaintext, and are only
+/// decrypted at the moment of an outbound call. A tenant may connect several
+/// accounts on the same platform (multiple Facebook pages is the common case),
+/// so uniqueness is per external account rather than per platform.
+model SocialConnection {
+  id             String                 @id @default(uuid())
+  orgId          String
+  platform       SocialPlatform
+  /// The provider's own id: Facebook page id, Instagram business account id,
+  /// LinkedIn organisation/person URN, X user id, WhatsApp phone number id.
+  externalId     String
+  /// Display handle, e.g. "@velaracrm" or the page name.
+  handle         String
+  avatarUrl      String?
+  accessTokenEnc String
+  refreshTokenEnc String?
+  /// Null when the provider issues long-lived or non-expiring tokens.
+  expiresAt      DateTime?
+  /// Scopes the provider actually granted, which can be fewer than requested.
+  scopes         String[]               @default([])
+  status         SocialConnectionStatus  @default(Connected)
+  statusDetail   String?
+  /// Preferred target when a post does not name a specific account.
+  isDefault      Boolean                @default(false)
+  lastCheckedAt  DateTime?
+  lastPublishAt  DateTime?
+  connectedById  String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  org   Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  posts SocialPostTarget[]
+
+  @@unique([orgId, platform, externalId])
+  @@index([orgId, platform])
+  @@index([orgId, status])
+  @@index([expiresAt])
+}
+
+/// Short-lived OAuth state, so a callback can be tied back to the tenant and
+/// user who started the flow. Rows are single-use and expire quickly; without
+/// this an attacker could complete a flow into someone else's workspace.
+model SocialOAuthState {
+  id          String         @id @default(uuid())
+  state       String         @unique
+  orgId       String
+  userId      String
+  platform    SocialPlatform
+  /// PKCE verifier for providers that require it (X).
+  codeVerifier String?
+  redirectTo  String?
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime       @default(now())
+
+  @@index([expiresAt])
+}
+
+/// A post the tenant composed, and its delivery outcome per target.
+model SocialPost {
+  id           String           @id @default(uuid())
+  orgId        String
+  body         String
+  /// Base64 data URL or storage key. Instagram requires media, so a post
+  /// targeting it without this is rejected before any provider call.
+  mediaUrl     String?
+  mediaMime    String?
+  status       SocialPostStatus @default(Draft)
+  /// Null for post-now; set for scheduled delivery.
+  scheduledAt  DateTime?
+  publishedAt  DateTime?
+  createdById  String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  org     Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  targets SocialPostTarget[]
+
+  @@index([orgId, status, scheduledAt])
+  @@index([orgId, createdAt])
+}
+
+/// One row per (post, connection): the unit that actually succeeds or fails.
+/// Keeping delivery per target is what lets a post be PartiallyPublished and
+/// retried only where it failed.
+model SocialPostTarget {
+  id           String           @id @default(uuid())
+  postId       String
+  connectionId String
+  status       SocialPostStatus @default(Scheduled)
+  /// The provider's id for the created post, for deep links and analytics.
+  externalPostId String?
+  permalink    String?
+  error        String?
+  attempts     Int              @default(0)
+  publishedAt  DateTime?
+
+  post       SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connection SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, connectionId])
+  @@index([status])
 }

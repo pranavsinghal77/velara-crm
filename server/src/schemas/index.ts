@@ -591,3 +591,53 @@ export const updateWorkflowSchema = z
   })
   .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
 export type UpdateWorkflowInput = z.infer<typeof updateWorkflowSchema>;
+
+// --- Social channels ---------------------------------------------------------
+
+const socialPlatformEnum = z.enum(['instagram', 'facebook', 'linkedin', 'x', 'whatsapp']);
+
+export const platformParam = z.object({ platform: socialPlatformEnum });
+export type PlatformParam = z.infer<typeof platformParam>;
+
+export const createSocialPostSchema = z
+  .object({
+    body: z.string().trim().max(63_206).default(''),
+    /// Base64 data URL. Instagram requires media; the publisher rejects a
+    /// text-only post for that platform before any provider call.
+    mediaUrl: z
+      .string()
+      .regex(
+        /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/=]+$/,
+        'Expected a base64 data URL for a PNG, JPEG or WebP image'
+      )
+      .max(8_000_000)
+      .optional(),
+    mediaMime: z.string().trim().max(64).optional(),
+    connectionIds: z
+      .array(z.string().uuid())
+      .min(1, 'Choose at least one connected account')
+      .max(20),
+    /// Omit to publish now.
+    scheduledAt: z.string().datetime().optional(),
+  })
+  .refine((v) => v.body.trim().length > 0 || Boolean(v.mediaUrl), {
+    message: 'Add some text or an image',
+    path: ['body'],
+  });
+export type CreateSocialPostInput = z.infer<typeof createSocialPostSchema>;
+
+export const socialPostListQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  status: z
+    .enum([
+      'Draft',
+      'Scheduled',
+      'Publishing',
+      'Published',
+      'PartiallyPublished',
+      'Failed',
+      'Canceled',
+    ])
+    .optional(),
+});
+export type SocialPostListQuery = z.infer<typeof socialPostListQuery>;

@@ -1,7 +1,7 @@
 import { Clock, CalendarDays, ChevronLeft, ChevronRight, Edit2, Trash2, X } from 'lucide-react';
 import { POST_DATES, CAL_DAYS, TODAY } from './types';
-import type { Platform, ScheduledPost } from './types';
-import { PlatformIcon, PlatformBadge } from './shared';
+import type { ScheduledPost } from './types';
+import { PlatformBadge, PlatformIcon } from './shared';
 import { PLATFORM_CONFIG } from './platforms';
 
 interface ContentCalendarProps {
@@ -16,8 +16,9 @@ interface ContentCalendarProps {
   schedTime: string;
   setSchedTime: (t: string) => void;
   schedConfirmed: string;
-  handleScheduleConfirm: () => void;
-  selectedPlatforms: Platform[];
+  handleScheduleConfirm: () => void | Promise<void>;
+  /** Display names of the accounts the post will go to. */
+  selectedPlatforms: string[];
 }
 
 export default function ContentCalendar({
@@ -106,6 +107,7 @@ export default function ContentCalendar({
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-amber-500" />
             <h3 className="text-sm font-bold text-slate-900">Scheduled Posts</h3>
+            <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">sample data</span>
           </div>
           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">{scheduledList.length} upcoming</span>
         </div>
@@ -191,7 +193,18 @@ export default function ContentCalendar({
             <div className="bg-slate-50 rounded-lg p-2.5 mb-4 flex items-center gap-2">
               <span className="text-xs text-slate-500">Posting to:</span>
               <div className="flex gap-1 flex-wrap">
-                {selectedPlatforms.map((p) => <PlatformBadge key={p} p={p} />)}
+                {selectedPlatforms.length === 0 ? (
+                  <span className="text-xs text-slate-400">no accounts selected</span>
+                ) : (
+                  selectedPlatforms.map((name) => (
+                    <span
+                      key={name}
+                      className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600"
+                    >
+                      {name}
+                    </span>
+                  ))
+                )}
               </div>
             </div>
 

@@ -18,6 +18,7 @@ export default function PostAnalytics({ feedFilter, setFeedFilter, visiblePosts 
         <div className="flex items-center gap-2 mb-4">
           <BarChart3 className="w-4 h-4 text-blue-600" />
           <h3 className="text-sm font-bold text-slate-900">Platform Performance</h3>
+          <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">sample data</span>
         </div>
         <div className="space-y-3">
           {PLATFORM_ANALYTICS.map((row) => (
@@ -55,6 +56,7 @@ export default function PostAnalytics({ feedFilter, setFeedFilter, visiblePosts 
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp className="w-4 h-4 text-blue-600" />
             <h3 className="text-sm font-bold text-slate-900">Recent Performance</h3>
+            <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 border border-slate-200">sample data</span>
           </div>
           {/* Filter pills */}
           <div className="flex gap-1 flex-wrap">

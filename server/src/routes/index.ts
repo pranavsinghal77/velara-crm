@@ -4,6 +4,8 @@ import aiRoutes from './ai.routes';
 import connectivityRoutes from './connectivity.routes';
 import mcpRoutes from './mcp.routes';
 import platformRoutes from './platform.routes';
+import socialRoutes from './social.routes';
+import socialCallbackRoutes from './socialCallback.routes';
 import analyticsRoutes from './analytics.routes';
 import authRoutes from './auth.routes';
 import campaignRoutes from './campaign.routes';
@@ -23,6 +25,11 @@ router.use('/auth', authRoutes);
 // this mounts ahead of requireAuth and does its own authentication.
 router.use('/mcp', mcpRoutes);
 
+// The social OAuth return leg. A provider redirects the user's browser here by
+// top-level navigation, with no Authorization header to send; the single-use
+// `state` issued when the flow began is what authenticates it.
+router.use('/social', socialCallbackRoutes);
+
 // Everything below this line requires a valid access token. Mounting the
 // guard once, here, means a newly added route cannot be forgotten and left
 // public, which is how the previous build shipped with every endpoint open.
@@ -37,6 +44,7 @@ router.use('/field-campaigns', campaignRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/ai', aiRoutes);
 router.use('/connectivity', connectivityRoutes);
+router.use('/social', socialRoutes);
 
 // Cross-tenant operator console. Gated again inside by requirePlatformAdmin.
 router.use('/platform', platformRoutes);

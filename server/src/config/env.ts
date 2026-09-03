@@ -47,6 +47,26 @@ const schema = z.object({
   STRIPE_WEBHOOK_SECRET: z.string().default(''),
   STRIPE_API_BASE: z.string().default('https://api.stripe.com'),
 
+  /**
+   * Public origin of this API, used to build OAuth redirect URIs. Derived from
+   * configuration rather than the incoming request, because a redirect_uri
+   * taken from the Host header is attacker-influenced and must match what is
+   * registered with each provider exactly.
+   */
+  PUBLIC_API_URL: z.string().default('http://localhost:3001'),
+  /** Where to send the browser back to after an OAuth round trip. */
+  PUBLIC_APP_URL: z.string().default('http://localhost:5173'),
+
+  /* Social providers. Each is optional; a platform with no credentials
+     reports itself as unavailable instead of pretending to be connected.
+     Instagram, Facebook and WhatsApp all authenticate through one Meta app. */
+  META_APP_ID: z.string().default(''),
+  META_APP_SECRET: z.string().default(''),
+  LINKEDIN_CLIENT_ID: z.string().default(''),
+  LINKEDIN_CLIENT_SECRET: z.string().default(''),
+  X_CLIENT_ID: z.string().default(''),
+  X_CLIENT_SECRET: z.string().default(''),
+
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),

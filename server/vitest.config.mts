@@ -12,6 +12,8 @@ export default defineConfig({
       JWT_ACCESS_SECRET: 'test-access-secret-that-is-long-enough-000',
       JWT_REFRESH_SECRET: 'test-refresh-secret-that-is-long-enough-0',
       APP_TIMEZONE: 'Asia/Kolkata',
+      // 32 bytes of base64, so the encryption helpers are exercisable.
+      ENCRYPTION_KEY: 'MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=',
     },
   },
 });
