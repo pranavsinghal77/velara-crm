@@ -128,7 +128,7 @@ export default function Dashboard() {
   }, [users, leads]);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       {notice && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700 flex items-center justify-between shadow-xs">
           <span>{notice}</span>

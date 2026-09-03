@@ -56,7 +56,7 @@ export default function PostCreator({
       : null;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       {/* Card header */}
       <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-4">
         <div className="flex items-center gap-2">
@@ -69,7 +69,7 @@ export default function PostCreator({
       <div className="p-4 flex flex-col gap-4">
         {/* Platform selector */}
         <div>
-          <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1.5">Post to</p>
+          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1.5">Post to</p>
           <div className="flex flex-wrap gap-2">
             {PLATFORMS.map((p) => {
               const cfg = PLATFORM_CONFIG[p];
@@ -81,7 +81,7 @@ export default function PostCreator({
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                     active
                       ? cfg.selectedCls
-                      : 'border border-gray-200 text-gray-500 hover:border-gray-300'
+                      : 'border border-slate-200 text-slate-500 hover:border-slate-300'
                   }`}
                 >
                   <PlatformIcon p={p} size={11} />
@@ -94,25 +94,25 @@ export default function PostCreator({
 
         {/* Topic textarea */}
         <div>
-          <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">What's your post about?</p>
+          <p className="text-xs font-medium text-slate-600 uppercase tracking-wide mb-1">What's your post about?</p>
           <textarea
             rows={3}
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             placeholder="e.g. Announcing our new AI lead scoring feature..."
-            className="w-full border border-gray-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-800 placeholder-gray-400"
+            className="w-full border border-slate-200 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 text-slate-800 placeholder-slate-400"
           />
         </div>
 
         {/* Quick topic pills */}
         <div>
-          <p className="text-xs text-gray-500 mb-1.5">💡 Quick topics</p>
+          <p className="text-xs text-slate-500 mb-1.5">💡 Quick topics</p>
           <div className="flex flex-wrap gap-1.5">
             {QUICK_TOPICS.map((qt) => (
               <button
                 key={qt}
                 onClick={() => setTopic(qt)}
-                className="px-2 py-1 bg-gray-100 rounded-md text-xs text-gray-600 cursor-pointer hover:bg-purple-100 hover:text-purple-700 transition-colors"
+                className="px-2 py-1 bg-slate-100 rounded-md text-xs text-slate-600 cursor-pointer hover:bg-purple-100 hover:text-purple-700 transition-colors"
               >
                 {qt}
               </button>
@@ -123,21 +123,21 @@ export default function PostCreator({
         {/* Tone + Language */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Tone</label>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Tone</label>
             <select
               value={tone}
               onChange={(e) => setTone(e.target.value as Tone)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
             >
               {TONES.map((t) => <option key={t}>{t}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium text-gray-600 block mb-1">Language</label>
+            <label className="text-xs font-medium text-slate-600 block mb-1">Language</label>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as Language)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
             >
               {LANGS.map((l) => <option key={l}>{l}</option>)}
             </select>
@@ -159,11 +159,11 @@ export default function PostCreator({
 
         {/* Generated output */}
         {generated && (
-          <div className="flex flex-col gap-3 pt-1 border-t border-gray-100">
+          <div className="flex flex-col gap-3 pt-1 border-t border-slate-100">
             {/* Caption box */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600">Generated Caption</span>
+                <span className="text-xs font-medium text-slate-600">Generated Caption</span>
                 <button onClick={copyCaption} className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700">
                   <Copy className="w-3 h-3" /> Copy
                 </button>
@@ -172,14 +172,14 @@ export default function PostCreator({
                 rows={7}
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                className="w-full bg-transparent text-sm text-gray-800 resize-none outline-none leading-relaxed"
+                className="w-full bg-transparent text-sm text-slate-800 resize-none outline-none leading-relaxed"
               />
             </div>
 
             {/* Hashtags */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-600">AI Hashtags</span>
+                <span className="text-xs font-medium text-slate-600">AI Hashtags</span>
                 <button onClick={handleRegenerateHashtags} className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700">
                   <RefreshCw className="w-3 h-3" /> Regenerate
                 </button>
@@ -197,7 +197,7 @@ export default function PostCreator({
             </div>
 
             {/* Char counter */}
-            <div className="flex justify-between text-xs text-gray-500">
+            <div className="flex justify-between text-xs text-slate-500">
               <span>Character count: {charCount}</span>
               {charWarning && <span className="text-amber-600 font-medium">{charWarning}</span>}
             </div>

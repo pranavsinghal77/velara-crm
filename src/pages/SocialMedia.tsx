@@ -59,7 +59,7 @@ export default function SocialMedia() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
       {/* ═══ SECTION 1 — HEADER ═════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
@@ -67,8 +67,8 @@ export default function SocialMedia() {
             <Share2 className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl font-bold text-gray-900">Social Media Manager</h1>
-            <p className="text-gray-500 text-sm">AI-powered content creation, scheduling & analytics</p>
+            <h1 className="text-2xl font-bold text-slate-900">Social Media Manager</h1>
+            <p className="text-slate-500 text-sm">AI-powered content creation, scheduling & analytics</p>
           </div>
         </div>
 
@@ -78,7 +78,7 @@ export default function SocialMedia() {
               { p: 'IG' as Platform, label: 'Instagram', pill: 'bg-pink-50 border-pink-200 text-pink-700',    dot: 'bg-pink-500'    },
               { p: 'LI' as Platform, label: 'LinkedIn',  pill: 'bg-blue-50 border-blue-200 text-blue-700',    dot: 'bg-blue-500'    },
               { p: 'FB' as Platform, label: 'Facebook',  pill: 'bg-indigo-50 border-indigo-200 text-indigo-700', dot: 'bg-indigo-500' },
-              { p: 'X'  as Platform, label: 'X',         pill: 'bg-gray-50 border-gray-300 text-gray-700',    dot: 'bg-gray-800'    },
+              { p: 'X'  as Platform, label: 'X',         pill: 'bg-slate-50 border-slate-300 text-slate-700',    dot: 'bg-slate-800'    },
               { p: 'WA' as Platform, label: 'WhatsApp',  pill: 'bg-green-50 border-green-200 text-green-700', dot: 'bg-green-500'   },
             ]).map((c) => (
               <div key={c.p} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium ${c.pill}`}>
@@ -103,11 +103,11 @@ export default function SocialMedia() {
           { label: 'AI Generated',      value: '12',    Icon: Sparkles,   bg: 'bg-purple-50', ic: 'text-purple-600', sub: '67% of all posts'      },
           { label: 'Total Reach',       value: '48.2K', Icon: TrendingUp, bg: 'bg-green-50',  ic: 'text-green-600',  sub: '+18% vs last month'    },
         ]).map((c) => (
-          <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+          <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100">
             <div className="flex justify-between items-start mb-2">
               <div>
-                <p className="text-2xl font-bold text-gray-900">{c.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{c.label}</p>
+                <p className="text-2xl font-bold text-slate-900">{c.value}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{c.label}</p>
               </div>
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${c.bg}`}>
                 <c.Icon className={`w-5 h-5 ${c.ic}`} />

@@ -173,7 +173,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
   }
 
   return (
-    <div className="space-y-6 relative p-6">
+    <div className="page-stack relative">
       {notice && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-medium text-blue-700 flex items-center justify-between shadow-sm">
           <span>{notice}</span>
@@ -188,8 +188,8 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
             <FolderOpen size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Documents & GST Proposals</h1>
-            <p className="text-xs text-gray-500">Contract management, GST invoices, SOW agreements & AI data extraction.</p>
+            <h1 className="text-2xl font-bold text-slate-900">Documents & GST Proposals</h1>
+            <p className="text-xs text-slate-500">Contract management, GST invoices, SOW agreements & AI data extraction.</p>
           </div>
         </div>
 
@@ -212,7 +212,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
       </div>
 
       {/* ═══ MAIN LAYOUT ═════════════════════════════════════ */}
-      <div className="flex gap-6 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         {/* Sidebar */}
         <DocSidebar
           activeCategory={activeCategory}
@@ -229,7 +229,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
         />
 
         {/* Grid */}
-        <div className="flex-1 min-w-0">
+        <div className="lg:col-span-2 min-w-0">
           <DocGrid
             selectedClientId={selectedClientId}
             selectedClientName={selectedClientName}
@@ -250,7 +250,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
       {/* ═══ GST PROFORMA QUOTATION MODAL ═════════════════════ */}
       {showQuoteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Modal Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -270,7 +270,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
               {/* Client Selection */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[11px] font-bold text-gray-700 block mb-1">Select Client / Lead:</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Select Client / Lead:</label>
                   <select
                     value={quoteClient}
                     onChange={(e) => {
@@ -278,7 +278,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
                       setQuoteClient(e.target.value);
                       if (found?.company) setQuoteCompany(found.company);
                     }}
-                    className="w-full text-xs font-semibold px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                    className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
                   >
                     {leads.map((l) => (
                       <option key={l.id} value={l.name}>
@@ -289,13 +289,13 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-gray-700 block mb-1">Client GSTIN / State:</label>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">Client GSTIN / State:</label>
                   <div className="flex gap-2">
                     <input
                       value={quoteGstin}
                       onChange={(e) => setQuoteGstin(e.target.value)}
                       placeholder="GSTIN Number"
-                      className="w-full text-xs px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg font-mono"
+                      className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg font-mono"
                     />
                   </div>
                 </div>
@@ -304,15 +304,15 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
               {/* Line Items Table */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-gray-800">Proposal Line Items (SAC / HSN 9983):</label>
+                  <label className="text-xs font-bold text-slate-800">Proposal Line Items (SAC / HSN 9983):</label>
                   <button onClick={addItem} className="text-xs text-emerald-700 font-bold flex items-center gap-1 hover:underline">
                     <Plus size={13} /> Add Service
                   </button>
                 </div>
 
-                <div className="border border-gray-200 rounded-xl overflow-hidden text-xs">
+                <div className="border border-slate-200 rounded-xl overflow-hidden text-xs">
                   <table className="w-full">
-                    <thead className="bg-gray-50 text-[10px] font-bold text-gray-500 uppercase">
+                    <thead className="bg-slate-50 text-[10px] font-bold text-slate-500 uppercase">
                       <tr>
                         <th className="px-3 py-2 text-left">Description</th>
                         <th className="px-2 py-2 text-center w-16">HSN</th>
@@ -321,9 +321,9 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
                         <th className="px-2 py-2 text-center w-8"></th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                       {quoteItems.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50/60">
+                        <tr key={index} className="hover:bg-slate-50/60">
                           <td className="px-3 py-2">
                             <input
                               value={item.description}
@@ -371,7 +371,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
                             />
                           </td>
                           <td className="px-2 py-2 text-center">
-                            <button onClick={() => removeItem(index)} className="text-gray-400 hover:text-red-600">
+                            <button onClick={() => removeItem(index)} className="text-slate-400 hover:text-red-600">
                               <Trash2 size={12} />
                             </button>
                           </td>
@@ -384,7 +384,7 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
 
               {/* Totals Summary */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-slate-600">
                   <span>Gross Subtotal:</span>
                   <span className="font-mono font-bold">₹{subTotal.toLocaleString('en-IN')}</span>
                 </div>
@@ -404,15 +404,15 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
                   </span>
                   <span className="font-mono font-bold">-₹{discountAmount.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-slate-600">
                   <span>Taxable Value:</span>
                   <span className="font-mono font-semibold">₹{taxableAmount.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-gray-600">
+                <div className="flex justify-between text-slate-600">
                   <span>CGST (9%) + SGST (9%):</span>
                   <span className="font-mono font-semibold">₹{(cgst + sgst).toLocaleString('en-IN')}</span>
                 </div>
-                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-bold text-gray-900">
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-bold text-slate-900">
                   <span>Total Amount Payable:</span>
                   <span className="font-mono text-base text-emerald-700">₹{grandTotal.toLocaleString('en-IN')}</span>
                 </div>
@@ -420,12 +420,12 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
-              <span className="text-[11px] text-gray-500">Auto-calculated with HDFC UPI & Bank details</span>
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <span className="text-[11px] text-slate-500">Auto-calculated with HDFC UPI & Bank details</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowQuoteModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200 rounded-lg"
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-200 rounded-lg"
                 >
                   Close
                 </button>

@@ -35,9 +35,9 @@ const TenantDetail = lazy(() => import('./pages/platform/TenantDetail'));
 
 function FullPageSpinner({ label }: { label: string }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-gray-50">
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 bg-slate-50">
       <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-sm text-slate-500">{label}</p>
     </div>
   );
 }
@@ -75,8 +75,8 @@ function RequireRole({ allow }: { allow: Role[] }) {
   if (!allow.includes(currentUser.role)) {
     return (
       <div className="p-10 text-center">
-        <h2 className="text-lg font-semibold text-gray-900">Not available on your plan seat</h2>
-        <p className="mt-2 text-sm text-gray-500">
+        <h2 className="text-lg font-semibold text-slate-900">Not available on your plan seat</h2>
+        <p className="mt-2 text-sm text-slate-500">
           This section needs {allow.join(' or ')} access. Ask an admin if you need it.
         </p>
       </div>

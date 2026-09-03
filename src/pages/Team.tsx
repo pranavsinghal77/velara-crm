@@ -60,30 +60,30 @@ export default function Team() {
   }, [leads, users, roleFilter]);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-stack">
       {/* ═══ HEADER ══════════════════════════════════════════ */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Enterprise Team Workspace</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Enterprise Team Workspace</h1>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
               {users.length} Team Members
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Shift attendance, rep quota tracking, AI coaching insights & performance metrics.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Role Filter Tabs */}
-          <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
+          <div className="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
             {['All', 'Sales', 'Manager', 'Admin'].map((r) => (
               <button
                 key={r}
                 onClick={() => setRoleFilter(r)}
                 className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                  roleFilter === r ? 'bg-white text-blue-600 shadow-xs' : 'text-gray-600 hover:text-gray-900'
+                  roleFilter === r ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {r}
@@ -145,12 +145,12 @@ export default function Team() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-sm text-gray-900">{card.user.name}</h3>
+                    <h3 className="font-bold text-sm text-slate-900">{card.user.name}</h3>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
                       {card.user.role}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 flex items-center gap-1.5 mt-0.5">
+                  <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
                     <Building size={11} /> {card.attendance.location} • {card.attendance.shift}
                   </p>
                 </div>

@@ -17,7 +17,7 @@ export const sourceBadge: Record<string, string> = {
 };
 
 export const statusBadge: Record<string, { bg: string; dot: string }> = {
-  New: { bg: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' },
+  New: { bg: 'bg-slate-100 text-slate-700', dot: 'bg-slate-400' },
   Contacted: { bg: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
   Qualified: { bg: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
   Negotiation: { bg: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
@@ -54,7 +54,7 @@ export function getPrediction(score: number, status: Lead['status']): Prediction
   if (score > 60 && status === 'New')
     return { label: '👀 Needs Nurturing', cls: 'bg-amber-100 text-amber-700', tip: 'Add to WhatsApp drip campaign' };
   if (score < 50)
-    return { label: '❄️ Cold Lead', cls: 'bg-gray-100 text-gray-600', tip: 'Re-engage with value content' };
+    return { label: '❄️ Cold Lead', cls: 'bg-slate-100 text-slate-600', tip: 'Re-engage with value content' };
   return { label: '📊 In Progress', cls: 'bg-indigo-100 text-indigo-700', tip: 'Continue regular follow-up' };
 }
 

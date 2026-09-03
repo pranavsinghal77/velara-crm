@@ -34,17 +34,17 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<TabKey>('users');
 
   return (
-    <div className="space-y-6">
+    <div className="page-stack">
 
       {/* ═══ SECTION 1 — HEADER ════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center">
+          <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center">
             <SettingsIcon className="w-5 h-5 text-white" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-500 text-sm">Manage your CRM workspace and preferences</p>
+            <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+            <p className="text-slate-500 text-sm">Manage your CRM workspace and preferences</p>
           </div>
         </div>
         <span className="flex items-center gap-2 px-3 py-1.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-medium">
@@ -57,14 +57,14 @@ export default function Settings() {
       <div className="flex gap-6 items-start">
 
         {/* LEFT SIDEBAR */}
-        <div className="w-56 flex-shrink-0 bg-white rounded-xl shadow-sm border border-gray-100 p-2">
+        <div className="w-56 flex-shrink-0 bg-white rounded-xl shadow-sm border border-slate-100 p-2">
           {TABS.map((t) => {
             const active = activeTab === t.key;
             return (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left mb-0.5 last:mb-0 ${active ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50'}`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors text-left mb-0.5 last:mb-0 ${active ? 'bg-blue-50 text-blue-700 font-medium' : 'text-slate-600 hover:bg-slate-50'}`}
               >
                 <t.Icon className="w-4 h-4 flex-shrink-0" />
                 <div className="flex flex-col gap-0 min-w-0">

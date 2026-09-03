@@ -144,7 +144,7 @@ export default function AIAssistant() {
     <>
       {/* ── Chat Panel ──────────────────────────────────────── */}
       <div
-        className={`fixed bottom-20 right-5 z-50 w-96 h-[540px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-300 ${
+        className={`fixed bottom-20 right-5 z-50 w-96 h-[540px] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden transition-all duration-300 ${
           isOpen
             ? 'opacity-100 translate-y-0 pointer-events-auto scale-100'
             : 'opacity-0 translate-y-6 pointer-events-none scale-95'

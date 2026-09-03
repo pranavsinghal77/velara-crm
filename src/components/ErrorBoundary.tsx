@@ -53,10 +53,10 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <h2 className="text-xl font-bold text-slate-900 mb-2">
               Something went wrong
             </h2>
-            <p className="text-gray-500 text-sm mb-4">
+            <p className="text-slate-500 text-sm mb-4">
               {this.state.error?.message || 'An unexpected error occurred in this section.'}
             </p>
             <button

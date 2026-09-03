@@ -262,16 +262,16 @@ export default function Analytics() {
 
   // ── render ────────────────────────────────────────────────
   return (
-    <div className="p-6 space-y-5">
+    <div className="page-stack">
       {/* ═══ HEADER ══════════════════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics & Insights</h1>
-          <p className="text-sm text-gray-500">AI-powered performance overview</p>
+          <h1 className="text-2xl font-bold text-slate-900">Analytics & Insights</h1>
+          <p className="text-sm text-slate-500">AI-powered performance overview</p>
         </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
           {(['7 Days', '30 Days', '90 Days'] as Range[]).map((r) => (
-            <button key={r} onClick={() => setRange(r)} className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${range === r ? 'bg-[#2563EB] text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}>
+            <button key={r} onClick={() => setRange(r)} className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${range === r ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
               {r}
             </button>
           ))}
@@ -288,27 +288,27 @@ export default function Analytics() {
         ] as const).map((c) => {
           const Icon = c.icon;
           return (
-            <div key={c.label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div key={c.label} className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-gray-500">{c.label}</span>
+                <span className="text-xs font-medium text-slate-500">{c.label}</span>
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${c.color}`}><Icon size={16} /></div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{c.value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{c.sub}</p>
+              <p className="text-2xl font-bold text-slate-900">{c.value}</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">{c.sub}</p>
             </div>
           );
         })}
       </div>
 
       {/* ═══ WEIGHTED PIPELINE FORECAST ═════════════════════ */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-600 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 border-l-4 border-l-purple-600 p-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className="text-[#7C3AED]" />
-            <h3 className="text-sm font-bold text-gray-900">Weighted Pipeline Forecast</h3>
-            <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">Open deals</span>
+            <h3 className="text-sm font-bold text-slate-900">Weighted Pipeline Forecast</h3>
+            <span className="text-[11px] font-medium text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">Open deals</span>
           </div>
-          <span className="text-[11px] text-gray-400">
+          <span className="text-[11px] text-slate-400">
             Stage-weighted, not a prediction
           </span>
         </div>
@@ -316,30 +316,30 @@ export default function Analytics() {
         <div className="flex gap-6">
           {/* Weighted value */}
           <div className="flex-1">
-            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Weighted Value</p>
-            <p className="text-3xl font-bold text-gray-900">{fmt(forecast.weightedLakhs)}</p>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-1">Weighted Value</p>
+            <p className="text-3xl font-bold text-slate-900">{fmt(forecast.weightedLakhs)}</p>
+            <p className="text-xs text-slate-500 mt-0.5">
               from {fmt(sumLeadValueLakhs(leads.filter((l) => l.status !== 'Won' && l.status !== 'Lost')))} of open pipeline
             </p>
-            <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+            <p className="text-[11px] text-slate-400 mt-3 leading-relaxed">
               New 10% · Contacted 20% · Qualified 40% · Negotiation 70%
             </p>
           </div>
 
-          <div className="w-px bg-gray-100 shrink-0" />
+          <div className="w-px bg-slate-100 shrink-0" />
 
           {/* Open deals by stage */}
           <div className="flex-1">
-            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Open Deals</p>
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide mb-1">Open Deals</p>
+            <p className="text-3xl font-bold text-slate-900">
               {forecast.openCount} {forecast.openCount === 1 ? 'deal' : 'deals'}
             </p>
             <div className="mt-3 space-y-1.5">
               {forecast.byStage.length === 0 ? (
-                <p className="text-xs text-gray-400">No open deals.</p>
+                <p className="text-xs text-slate-400">No open deals.</p>
               ) : (
                 forecast.byStage.map(([stage, count]) => (
-                  <p key={stage} className="text-xs text-gray-600">
+                  <p key={stage} className="text-xs text-slate-600">
                     {count} in {stage}
                   </p>
                 ))
@@ -347,14 +347,14 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="w-px bg-gray-100 shrink-0" />
+          <div className="w-px bg-slate-100 shrink-0" />
 
           {/* Risks, derived */}
           <div className="flex-1">
             <p className="text-[11px] font-medium text-amber-600 uppercase tracking-wide mb-2">Pipeline Risks</p>
             <div className="space-y-1.5">
               {risks.length === 0 ? (
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-slate-400">
                   Nothing stale or overdue right now.
                 </p>
               ) : (
@@ -370,19 +370,19 @@ export default function Analytics() {
       </div>
 
       {/* ═══ ROW 2 — LINE + PIE ══════════════════════════════ */}
-      <div className="flex gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         {/* Line Chart */}
-        <div className="w-[60%] bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="xl:col-span-3 bg-white rounded-xl shadow-sm border border-slate-100 p-6 min-w-0">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={16} className="text-blue-600" />
-            <h3 className="text-sm font-bold text-gray-900">Lead Acquisition Trend</h3>
+            <h3 className="text-sm font-bold text-slate-900">Lead Acquisition Trend</h3>
           </div>
           {trendError ? (
             <p className="h-[250px] flex items-center justify-center text-xs text-red-600">
               {trendError}
             </p>
           ) : trend.length === 0 ? (
-            <p className="h-[250px] flex items-center justify-center text-xs text-gray-400">
+            <p className="h-[250px] flex items-center justify-center text-xs text-slate-400">
               Not enough history yet.
             </p>
           ) : (
@@ -401,10 +401,10 @@ export default function Analytics() {
         </div>
 
         {/* Pie Chart */}
-        <div className="w-[40%] bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-6 min-w-0">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={16} className="text-purple-600" />
-            <h3 className="text-sm font-bold text-gray-900">Lead Sources</h3>
+            <h3 className="text-sm font-bold text-slate-900">Lead Sources</h3>
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
@@ -416,7 +416,7 @@ export default function Analytics() {
           </ResponsiveContainer>
           <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 justify-center">
             {sourceData.map((d) => (
-              <span key={d.name} className="flex items-center gap-1.5 text-[11px] text-gray-600">
+              <span key={d.name} className="flex items-center gap-1.5 text-[11px] text-slate-600">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLORS[d.name] }} />
                 {d.name} ({d.value}) {sourceTotal ? `${Math.round((d.value / sourceTotal) * 100)}%` : ''}
               </span>
@@ -426,15 +426,15 @@ export default function Analytics() {
       </div>
 
       {/* ═══ ROW 3 — FUNNEL ══════════════════════════════════ */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
         <div className="flex items-center gap-2 mb-5">
           <Filter size={16} className="text-indigo-600" />
-          <h3 className="text-sm font-bold text-gray-900">Sales Pipeline Funnel</h3>
+          <h3 className="text-sm font-bold text-slate-900">Sales Pipeline Funnel</h3>
         </div>
         <div className="space-y-3">
           {funnelData.map((f, i) => (
             <div key={f.stage} className="flex items-center gap-3">
-              <span className="text-xs font-semibold text-gray-600 w-24 shrink-0 text-right">{f.stage}</span>
+              <span className="text-xs font-semibold text-slate-600 w-24 shrink-0 text-right">{f.stage}</span>
               <div className="flex-1 relative h-9">
                 <div
                   className="h-full rounded-lg flex items-center px-3 transition-all"
@@ -450,7 +450,7 @@ export default function Analytics() {
                     {f.drop > 0 && <span className="text-[10px] font-semibold text-red-500 ml-1">-{f.drop}%</span>}
                   </div>
                 ) : (
-                  <span className="text-[10px] text-gray-400">100%</span>
+                  <span className="text-[10px] text-slate-400">100%</span>
                 )}
               </div>
             </div>
@@ -461,14 +461,14 @@ export default function Analytics() {
       {/* ═══ ROW 4 — SOURCE PERF + AI INSIGHTS ═══════════════ */}
       <div className="flex gap-4">
         {/* Source Performance */}
-        <div className="w-1/2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="w-1/2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center gap-2 mb-4">
             <BarChart3 size={16} className="text-blue-600" />
-            <h3 className="text-sm font-bold text-gray-900">Source Performance</h3>
+            <h3 className="text-sm font-bold text-slate-900">Source Performance</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-gray-500 border-b border-gray-100">
+              <tr className="text-[11px] text-slate-500 border-b border-slate-100">
                 <th className="pb-2 text-left font-medium">Source</th>
                 <th className="pb-2 text-center font-medium">Leads</th>
                 <th className="pb-2 text-center font-medium">Won</th>
@@ -478,16 +478,16 @@ export default function Analytics() {
             </thead>
             <tbody>
               {sourcePerfData.map((s, i) => (
-                <tr key={s.source} className="border-b border-gray-50">
-                  <td className="py-2 font-medium text-gray-800 flex items-center gap-1.5">
+                <tr key={s.source} className="border-b border-slate-50">
+                  <td className="py-2 font-medium text-slate-800 flex items-center gap-1.5">
                     {i === 0 && <Star size={12} className="text-amber-500 fill-amber-500" />}
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SOURCE_COLORS[s.source] }} />
                     {s.source}
                   </td>
-                  <td className="py-2 text-center text-gray-600">{s.leads}</td>
-                  <td className="py-2 text-center text-gray-600">{s.won}</td>
-                  <td className="py-2 text-center font-semibold text-gray-800">{s.rate.toFixed(1)}%</td>
-                  <td className="py-2 text-center text-gray-600">{s.avgScore}</td>
+                  <td className="py-2 text-center text-slate-600">{s.leads}</td>
+                  <td className="py-2 text-center text-slate-600">{s.won}</td>
+                  <td className="py-2 text-center font-semibold text-slate-800">{s.rate.toFixed(1)}%</td>
+                  <td className="py-2 text-center text-slate-600">{s.avgScore}</td>
                 </tr>
               ))}
             </tbody>
@@ -495,24 +495,24 @@ export default function Analytics() {
         </div>
 
         {/* AI Insights */}
-        <div className="w-1/2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div className="w-1/2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles size={16} className="text-[#7C3AED]" />
-            <h3 className="text-sm font-bold text-gray-900">AI Insights</h3>
+            <h3 className="text-sm font-bold text-slate-900">AI Insights</h3>
           </div>
           {/* Derived from the loaded leads, so every line is checkable against
               the pipeline. The previous panel was five hardcoded strings with
               invented confidence percentages. */}
           <div className="space-y-2">
             {insights.length === 0 ? (
-              <p className="text-xs text-gray-400 py-6 text-center">
+              <p className="text-xs text-slate-400 py-6 text-center">
                 Add a few leads to see pipeline observations here.
               </p>
             ) : (
               insights.map((ins) => (
                 <div key={ins.text} className="bg-purple-50 rounded-lg p-3 flex items-start gap-2">
                   <span className="text-sm shrink-0">{ins.emoji}</span>
-                  <p className="text-xs text-gray-700 flex-1">{ins.text}</p>
+                  <p className="text-xs text-slate-700 flex-1">{ins.text}</p>
                 </div>
               ))
             )}
@@ -521,15 +521,15 @@ export default function Analytics() {
       </div>
 
       {/* ═══ BOTTOM — TEAM PERFORMANCE ═══════════════════════ */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Users size={16} className="text-blue-600" />
-          <h3 className="text-sm font-bold text-gray-900">Team Performance</h3>
+          <h3 className="text-sm font-bold text-slate-900">Team Performance</h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-gray-500 border-b border-gray-100">
+              <tr className="text-[11px] text-slate-500 border-b border-slate-100">
                 <th className="pb-2 text-left font-medium">Rep</th>
                 <th className="pb-2 text-center font-medium">Assigned</th>
                 <th className="pb-2 text-center font-medium">Contacted</th>
@@ -542,24 +542,24 @@ export default function Analytics() {
             </thead>
             <tbody>
               {teamData.map((t, i) => (
-                <tr key={t.name} className="border-b border-gray-50 hover:bg-gray-50/50">
+                <tr key={t.name} className="border-b border-slate-50 hover:bg-slate-50/50">
                   <td className="py-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-xs font-bold shrink-0">
                         {t.name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2)}
                       </div>
-                      <span className="font-medium text-gray-800">{t.name}</span>
+                      <span className="font-medium text-slate-800">{t.name}</span>
                       {i === 0 && <span title="Top performer">👑</span>}
                     </div>
                   </td>
-                  <td className="py-3 text-center text-gray-600">{t.assigned}</td>
-                  <td className="py-3 text-center text-gray-600">{t.contacted}</td>
-                  <td className="py-3 text-center text-gray-600">{t.qualified}</td>
-                  <td className="py-3 text-center font-semibold text-gray-800">{t.won}</td>
-                  <td className="py-3 text-center font-semibold text-gray-800">{t.rate.toFixed(1)}%</td>
-                  <td className="py-3 text-center text-gray-600">{t.avgScore}</td>
+                  <td className="py-3 text-center text-slate-600">{t.assigned}</td>
+                  <td className="py-3 text-center text-slate-600">{t.contacted}</td>
+                  <td className="py-3 text-center text-slate-600">{t.qualified}</td>
+                  <td className="py-3 text-center font-semibold text-slate-800">{t.won}</td>
+                  <td className="py-3 text-center font-semibold text-slate-800">{t.rate.toFixed(1)}%</td>
+                  <td className="py-3 text-center text-slate-600">{t.avgScore}</td>
                   <td className="py-3 pl-3 w-36">
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${Math.min(t.rate, 100)}%` }} />
                     </div>
                   </td>

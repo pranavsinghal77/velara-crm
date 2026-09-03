@@ -72,7 +72,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     Admin: 'bg-red-500/20 text-red-400',
     Manager: 'bg-amber-500/20 text-amber-400',
     Sales: 'bg-green-500/20 text-green-400',
-    Viewer: 'bg-gray-500/20 text-gray-400',
+    Viewer: 'bg-slate-500/20 text-slate-400',
   };
 
   const initials = user?.name?.charAt(0)?.toUpperCase() ?? '?';
@@ -80,7 +80,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className="fixed left-0 top-0 h-screen z-40 bg-slate-900 flex flex-col transition-all duration-300 overflow-hidden border-r border-slate-800/50 shadow-2xl"
-      style={{ width: isCollapsed ? '64px' : '240px' }}
+      style={{ width: isCollapsed ? 'var(--sidebar-w-collapsed)' : 'var(--sidebar-w)' }}
     >
       {/* ── Top ─────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">

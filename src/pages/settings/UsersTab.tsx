@@ -11,7 +11,7 @@ const ROLE_BADGE: Record<string, string> = {
   Admin: 'bg-purple-100 text-purple-700',
   Manager: 'bg-blue-100 text-blue-700',
   Sales: 'bg-green-100 text-green-700',
-  Viewer: 'bg-gray-100 text-gray-700',
+  Viewer: 'bg-slate-100 text-slate-700',
 };
 
 const PERMISSION_LABELS = [
@@ -85,10 +85,10 @@ export default function UsersTab() {
   return (
     <>
       {/* Header card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 flex items-center justify-between">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-semibold text-gray-900">Team Members</span>
-          <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{users.length} members</span>
+          <span className="font-semibold text-slate-900">Team Members</span>
+          <span className="text-xs font-medium px-2 py-0.5 bg-slate-100 text-slate-600 rounded-full">{users.length} members</span>
         </div>
         <button
           onClick={() => { setUserForm(EMPTY_FORM); setInviteModal(true); }}
@@ -100,9 +100,9 @@ export default function UsersTab() {
       </div>
 
       {/* Users table card */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Table header */}
-        <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase tracking-wide">
           <div className="col-span-5">Member</div>
           <div className="col-span-2">Role</div>
           <div className="col-span-3">Permissions</div>
@@ -116,7 +116,7 @@ export default function UsersTab() {
           // hardcoded five chips for every row regardless of permissions.
           const perms = u.permissions.length > 0 ? u.permissions : ['none'];
           return (
-            <div key={u.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 items-center">
+            <div key={u.id} className="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-50 last:border-0 hover:bg-slate-50 items-center">
               {/* Member */}
               <div className="col-span-5 flex items-center gap-3">
                 <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
@@ -124,12 +124,12 @@ export default function UsersTab() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-gray-900 text-sm truncate">{u.name}</span>
+                    <span className="font-medium text-slate-900 text-sm truncate">{u.name}</span>
                     {currentUser?.id === u.id && (
                       <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 shrink-0">You</span>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500 truncate">{u.email}</span>
+                  <span className="text-xs text-slate-500 truncate">{u.email}</span>
                 </div>
               </div>
 
@@ -145,7 +145,7 @@ export default function UsersTab() {
                     <span key={p} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded">{p}</span>
                   ))}
                   {perms.length > 3 && (
-                    <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">+{perms.length - 3} more</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">+{perms.length - 3} more</span>
                   )}
                 </div>
               </div>
@@ -157,11 +157,11 @@ export default function UsersTab() {
 
               {/* Actions */}
               <div className="col-span-1 flex gap-1">
-                <button className="p-1.5 bg-gray-100 rounded-lg hover:bg-blue-100 hover:text-blue-600 transition-colors">
-                  <Pencil className="w-4 h-4 text-gray-500" />
+                <button className="p-1.5 bg-slate-100 rounded-lg hover:bg-blue-100 hover:text-blue-600 transition-colors">
+                  <Pencil className="w-4 h-4 text-slate-500" />
                 </button>
-                <button className="p-1.5 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                  <MoreVertical className="w-4 h-4 text-gray-500" />
+                <button className="p-1.5 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+                  <MoreVertical className="w-4 h-4 text-slate-500" />
                 </button>
               </div>
             </div>
@@ -174,8 +174,8 @@ export default function UsersTab() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setInviteModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold text-gray-900">Invite Team Member</h3>
-              <button onClick={() => setInviteModal(false)} className="p-1 rounded-lg hover:bg-gray-100 text-gray-500"><X className="w-4 h-4" /></button>
+              <h3 className="text-base font-bold text-slate-900">Invite Team Member</h3>
+              <button onClick={() => setInviteModal(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><X className="w-4 h-4" /></button>
             </div>
 
             {formError && (
@@ -186,30 +186,30 @@ export default function UsersTab() {
 
             <div className="flex flex-col gap-4">
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Full Name *</label>
-                <input value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Full Name *</label>
+                <input value={userForm.name} onChange={(e) => setUserForm({ ...userForm, name: e.target.value })} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Email *</label>
-                <input type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Email *</label>
+                <input type="email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Role *</label>
-                <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as User['role'] })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Role *</label>
+                <select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value as User['role'] })} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
                   {['Admin','Manager','Sales','Viewer'].map((r) => <option key={r}>{r}</option>)}
                 </select>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-1">Temporary password * (min 12 chars)</label>
-                <input type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="text-xs font-semibold text-slate-700 block mb-1">Temporary password * (min 12 chars)</label>
+                <input type="password" value={userForm.password} onChange={(e) => setUserForm({ ...userForm, password: e.target.value })} className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               {/* Permissions */}
               <div>
-                <label className="text-xs font-semibold text-gray-700 block mb-2">Initial Permissions</label>
+                <label className="text-xs font-semibold text-slate-700 block mb-2">Initial Permissions</label>
                 <div className="grid grid-cols-2 gap-2">
                   {PERMISSION_LABELS.map((p, i) => (
-                    <label key={p} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                    <label key={p} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
                       <input type="checkbox" checked={userForm.permissions[i] ?? false}
                         onChange={(e) => setUserForm({ ...userForm, permissions: userForm.permissions.map((v, j) => j === i ? e.target.checked : v) })}
                         className="accent-blue-600" />
@@ -221,7 +221,7 @@ export default function UsersTab() {
             </div>
 
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setInviteModal(false)} className="flex-1 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+              <button onClick={() => setInviteModal(false)} className="flex-1 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Cancel</button>
               <button
                 onClick={() => void handleSaveInvite()}
                 disabled={isSaving}

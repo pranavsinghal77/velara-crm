@@ -119,12 +119,12 @@ export default function Login() {
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
               <span className="text-white font-bold text-sm">V</span>
             </div>
-            <span className="text-gray-800 font-semibold text-base">Velara CRM</span>
+            <span className="text-slate-800 font-semibold text-base">Velara CRM</span>
           </div>
 
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-            <p className="text-gray-500 text-sm">Sign in to your workspace</p>
+            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+            <p className="text-slate-500 text-sm">Sign in to your workspace</p>
           </div>
 
           {error && (
@@ -146,11 +146,11 @@ export default function Login() {
 
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label htmlFor="email" className="text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="text-sm font-medium text-slate-700">
                 Email address
               </label>
-              <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
-                <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+                <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
                 <input
                   id="email"
                   name="email"
@@ -160,17 +160,17 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
-                  className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder-gray-400"
+                  className="flex-1 text-sm outline-none bg-transparent text-slate-900 placeholder-slate-400"
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label htmlFor="password" className="text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
                 Password
               </label>
-              <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
-                <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <div className="flex items-center gap-2 border border-slate-300 rounded-lg px-3 py-2.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 bg-white">
+                <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" />
                 <input
                   id="password"
                   name="password"
@@ -180,7 +180,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder-gray-400"
+                  className="flex-1 text-sm outline-none bg-transparent text-slate-900 placeholder-slate-400"
                 />
                 <button
                   type="button"
@@ -188,9 +188,9 @@ export default function Login() {
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+                    <EyeOff className="w-4 h-4 text-slate-400 cursor-pointer hover:text-slate-600" />
                   ) : (
-                    <Eye className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+                    <Eye className="w-4 h-4 text-slate-400 cursor-pointer hover:text-slate-600" />
                   )}
                 </button>
               </div>
@@ -226,7 +226,7 @@ export default function Login() {
                 <Zap className="w-4 h-4 text-blue-600" />
                 <span className="text-blue-800 font-semibold text-sm">Demo accounts</span>
               </div>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-slate-600">
                 Prefills an email. Enter the password printed by{' '}
                 <code className="bg-white px-1 rounded">npm run db:seed</code>.
               </p>

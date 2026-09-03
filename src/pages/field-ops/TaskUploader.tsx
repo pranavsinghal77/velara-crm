@@ -91,7 +91,7 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-600 to-purple-600">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-600 to-purple-600">
           <h2 className="text-lg font-bold text-white">Visual compliance check</h2>
           <button
             onClick={onClose}
@@ -107,7 +107,7 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
             <img
               src={preview}
               alt="Selected field evidence"
-              className="max-h-52 w-auto rounded-xl border border-gray-200 object-contain"
+              className="max-h-52 w-auto rounded-xl border border-slate-200 object-contain"
             />
           ) : (
             <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center">
@@ -115,7 +115,7 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
             </div>
           )}
 
-          <p className="text-sm text-gray-500 max-w-[300px]">
+          <p className="text-sm text-slate-500 max-w-[300px]">
             Upload a clear photo of the completed execution. It is analysed against the
             campaign rules before the task is marked complete.
           </p>
@@ -135,7 +135,7 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
             className="w-full p-6 border-2 border-dashed border-purple-200 rounded-xl hover:border-purple-500 hover:bg-purple-50 transition-all cursor-pointer flex flex-col items-center gap-2"
           >
             <Upload className="text-purple-400" size={26} />
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-slate-600">
               {file ? `Change photo (${file.name})` : 'Tap to take or select a photo'}
             </span>
           </button>
@@ -151,10 +151,10 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
+        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+            className="px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
           >
             Cancel
           </button>

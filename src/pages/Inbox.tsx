@@ -295,13 +295,13 @@ export default function Inbox() {
   }
 
   return (
-    <div className="flex bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden h-[calc(100vh-112px)] relative">
+    <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden page-fill relative">
       {/* ═══ LEFT PANEL ═══════════════════════════════════════ */}
-      <div className="w-[35%] min-w-[280px] border-r border-gray-200 flex flex-col">
+      <div className="w-[35%] min-w-[280px] border-r border-slate-200 flex flex-col">
         {/* Header */}
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-lg font-bold text-gray-900">Unified Inbox</h2>
+            <h2 className="text-lg font-bold text-slate-900">Unified Inbox</h2>
             {unreadTotal > 0 && (
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
                 {unreadTotal} unread
@@ -310,7 +310,7 @@ export default function Inbox() {
           </div>
 
           {/* Channel tabs */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-slate-200">
             {CHANNELS.map((ch) => (
               <button
                 key={ch}
@@ -318,7 +318,7 @@ export default function Inbox() {
                 className={`flex-1 pb-2 text-sm font-medium transition-colors ${
                   activeChannel === ch
                     ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
+                    : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {ch}
@@ -333,15 +333,15 @@ export default function Inbox() {
               placeholder="Search conversations..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full text-xs px-3 py-2 rounded-lg bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full text-xs px-3 py-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         {/* Conversation list */}
-        <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
           {filteredConvos.length === 0 && (
-            <div className="p-4 text-center text-xs text-gray-400">No conversations found</div>
+            <div className="p-4 text-center text-xs text-slate-400">No conversations found</div>
           )}
           {filteredConvos.map((c) => {
             const lead = leads.find((l) => l.id === c.leadId);
@@ -359,10 +359,10 @@ export default function Inbox() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-gray-900 truncate">
+                    <span className="text-sm font-semibold text-slate-900 truncate">
                       {lead?.name ?? c.leadId}
                     </span>
-                    <span className="text-[10px] text-gray-400 shrink-0 ml-2">
+                    <span className="text-[10px] text-slate-400 shrink-0 ml-2">
                       {formatTime(c.last.timestamp)}
                     </span>
                   </div>
@@ -374,7 +374,7 @@ export default function Inbox() {
                     )}
                   </div>
                   <div className="flex items-center justify-between mt-0.5">
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-xs text-slate-400 truncate">
                       {c.last.content.slice(0, 40)}{c.last.content.length > 40 ? '…' : ''}
                     </p>
                     {c.unread && <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0 ml-1" />}
@@ -390,9 +390,9 @@ export default function Inbox() {
       <div className="flex-1 flex flex-col min-w-0">
         {!selectedLead || !activeLead ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
-            <MessageSquare size={48} className="text-gray-300 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-700">Select a conversation to start messaging</h3>
-            <p className="text-sm text-gray-400 mt-1">All your WhatsApp, Email and SMS in one place</p>
+            <MessageSquare size={48} className="text-slate-300 mb-4" />
+            <h3 className="text-lg font-semibold text-slate-700">Select a conversation to start messaging</h3>
+            <p className="text-sm text-slate-400 mt-1">All your WhatsApp, Email and SMS in one place</p>
           </div>
         ) : (
           <>
@@ -404,7 +404,7 @@ export default function Inbox() {
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-gray-900 truncate">{activeLead.name}</span>
+                    <span className="text-sm font-semibold text-slate-900 truncate">{activeLead.name}</span>
                     <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${sourceBadge[activeLead.source]}`}>
                       {activeLead.source}
                     </span>
@@ -412,7 +412,7 @@ export default function Inbox() {
                       {activeLead.aiScore}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-400 truncate">
+                  <p className="text-xs text-slate-400 truncate">
                     {activeLead.company ? `${activeLead.company} • ` : ''}Budget: {activeLead.budget || '₹3L'} • via {activeChannel}
                   </p>
                 </div>
@@ -428,8 +428,8 @@ export default function Inbox() {
                   <Zap size={13} className="text-yellow-200 fill-yellow-200" />
                   <span>Escalate to Tier {selectedTier}</span>
                 </button>
-                <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"><Phone size={18} /></button>
-                <button className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors"><Video size={18} /></button>
+                <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"><Phone size={18} /></button>
+                <button className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 transition-colors"><Video size={18} /></button>
               </div>
             </div>
 
@@ -508,7 +508,7 @@ export default function Inbox() {
                   <div key={msg.id}>
                     {showDate && (
                       <div className="flex justify-center my-3">
-                        <span className="text-[10px] text-gray-400 bg-gray-200/60 px-3 py-0.5 rounded-full">
+                        <span className="text-[10px] text-slate-400 bg-slate-200/60 px-3 py-0.5 rounded-full">
                           {curDate}
                         </span>
                       </div>
@@ -518,12 +518,12 @@ export default function Inbox() {
                         className={`max-w-[75%] px-3.5 py-2 text-sm whitespace-pre-wrap ${
                           isSent
                             ? 'bg-[#2563EB] text-white rounded-2xl rounded-br-sm'
-                            : 'bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-sm'
+                            : 'bg-white text-slate-800 border border-slate-200 rounded-2xl rounded-bl-sm'
                         }`}
                       >
                         {msg.content}
                         <div className={`flex items-center gap-1 mt-1 ${isSent ? 'justify-end' : ''}`}>
-                          <span className={`text-[10px] ${isSent ? 'text-blue-200' : 'text-gray-400'}`}>
+                          <span className={`text-[10px] ${isSent ? 'text-blue-200' : 'text-slate-400'}`}>
                             {formatTime(msg.timestamp)}
                           </span>
                           {isSent && (
@@ -539,12 +539,12 @@ export default function Inbox() {
             </div>
 
             {/* ── Quick reply chips ─────────────────────────────── */}
-            <div className="flex gap-2 px-4 py-2 border-t border-gray-100 overflow-x-auto shrink-0 bg-white">
+            <div className="flex gap-2 px-4 py-2 border-t border-slate-100 overflow-x-auto shrink-0 bg-white">
               {quickReplies.map((r) => (
                 <button
                   key={r}
                   onClick={() => setInput(r)}
-                  className="text-[11px] text-gray-600 bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-full whitespace-nowrap transition-colors"
+                  className="text-[11px] text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1 rounded-full whitespace-nowrap transition-colors"
                 >
                   {r}
                 </button>
@@ -565,7 +565,7 @@ export default function Inbox() {
                   </div>
                   <button
                     onClick={refreshSmartReplies}
-                    className="p-1 rounded-full text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                    className="p-1 rounded-full text-slate-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
                     title="Refresh suggestions"
                   >
                     <RefreshCw size={12} />
@@ -579,7 +579,7 @@ export default function Inbox() {
                 )}
                 <div className="flex flex-col gap-1.5">
                   {isAiLoading ? (
-                    <div className="flex items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-center p-4 bg-slate-50 rounded-lg border border-slate-100">
                       <div className="w-4 h-4 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
                       <span className="ml-2 text-xs font-medium text-purple-600 animate-pulse">Gemini analyzing thread...</span>
                     </div>
@@ -602,14 +602,14 @@ export default function Inbox() {
             </div>
 
             {/* ── Input bar ─────────────────────────────────────── */}
-            <div className="flex items-center gap-2 px-4 py-3 border-t border-gray-200 shrink-0 bg-white">
+            <div className="flex items-center gap-2 px-4 py-3 border-t border-slate-200 shrink-0 bg-white">
               <input
                 type="text"
                 placeholder={`Type a message on ${activeChannel}...`}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
               />
               <button
                 onClick={handleSend}
@@ -617,7 +617,7 @@ export default function Inbox() {
                 className={`p-2.5 rounded-xl text-white transition-all shadow-sm ${
                   input.trim()
                     ? 'bg-[#2563EB] hover:bg-blue-700 scale-100'
-                    : 'bg-gray-300 cursor-not-allowed'
+                    : 'bg-slate-300 cursor-not-allowed'
                 }`}
               >
                 <Send size={18} />
@@ -630,7 +630,7 @@ export default function Inbox() {
       {/* ═══ ZERO-BT MULTI-TIER ESCALATION DOSSIER MODAL ═══════ */}
       {showEscalationModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
             {/* Modal Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-red-600 via-orange-600 to-indigo-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -652,7 +652,7 @@ export default function Inbox() {
             <div className="p-6 overflow-y-auto space-y-4">
               {/* Hierarchy Selector */}
               <div>
-                <label className="text-xs font-bold text-gray-700 block mb-1.5 uppercase tracking-wide">
+                <label className="text-xs font-bold text-slate-700 block mb-1.5 uppercase tracking-wide">
                   Target Escalation Tier:
                 </label>
                 <select
@@ -660,7 +660,7 @@ export default function Inbox() {
                   onChange={(e) => {
                     setSelectedTier(Number(e.target.value));
                   }}
-                  className="w-full text-xs font-semibold px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full text-xs font-semibold px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500"
                 >
                   <option value={1}>Tier 1: Junior Sales SDR</option>
                   <option value={2}>Tier 2: Account Executive</option>
@@ -676,34 +676,34 @@ export default function Inbox() {
               {isDossierLoading ? (
                 <div className="py-12 flex flex-col items-center justify-center space-y-3">
                   <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-xs font-semibold text-gray-600 animate-pulse">ZeroBT is generating executive briefing and VIP resolution template...</p>
+                  <p className="text-xs font-semibold text-slate-600 animate-pulse">ZeroBT is generating executive briefing and VIP resolution template...</p>
                 </div>
               ) : dossier ? (
                 <div className="space-y-4">
                   {/* Executive Brief */}
                   <div className="p-3.5 bg-orange-50/80 rounded-xl border border-orange-200">
                     <span className="text-[11px] font-bold text-orange-800 uppercase tracking-wider block mb-1">Executive Brief</span>
-                    <p className="text-xs text-gray-800 leading-relaxed font-medium">{dossier.executiveBrief}</p>
+                    <p className="text-xs text-slate-800 leading-relaxed font-medium">{dossier.executiveBrief}</p>
                   </div>
 
                   {/* Root Cause & Recommended Tactical Action */}
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-3 bg-red-50/60 rounded-xl border border-red-100">
                       <span className="text-[10px] font-bold text-red-700 uppercase block mb-1">Root Cause / Blocker</span>
-                      <p className="text-xs text-gray-700">{dossier.rootCause}</p>
+                      <p className="text-xs text-slate-700">{dossier.rootCause}</p>
                     </div>
                     <div className="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
                       <span className="text-[10px] font-bold text-emerald-700 uppercase block mb-1">Recommended Action</span>
-                      <p className="text-xs text-gray-700">{dossier.recommendedAction}</p>
+                      <p className="text-xs text-slate-700">{dossier.recommendedAction}</p>
                     </div>
                   </div>
 
                   {/* Key Deal Facts */}
                   <div>
-                    <span className="text-xs font-bold text-gray-700 block mb-1.5">Key Deal & Operational Facts:</span>
+                    <span className="text-xs font-bold text-slate-700 block mb-1.5">Key Deal & Operational Facts:</span>
                     <ul className="grid grid-cols-2 gap-2">
                       {dossier.keyFacts?.map((fact, i) => (
-                        <li key={i} className="text-xs text-gray-600 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 flex items-center gap-1.5">
+                        <li key={i} className="text-xs text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200 flex items-center gap-1.5">
                           <Check size={12} className="text-emerald-600 shrink-0" />
                           <span className="truncate">{fact}</span>
                         </li>
@@ -746,17 +746,17 @@ export default function Inbox() {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
               <button
                 onClick={generateEscalationDossier}
-                className="text-xs text-gray-600 font-semibold hover:text-gray-900"
+                className="text-xs text-slate-600 font-semibold hover:text-slate-900"
               >
                 Regenerate Dossier
               </button>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowEscalationModal(false)}
-                  className="px-4 py-2 rounded-lg text-xs font-semibold text-gray-600 hover:bg-gray-200"
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200"
                 >
                   Close
                 </button>

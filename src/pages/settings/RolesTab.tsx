@@ -7,7 +7,7 @@ const ROLE_BADGE: Record<string, string> = {
   Admin: 'bg-purple-100 text-purple-700',
   Manager: 'bg-blue-100 text-blue-700',
   Sales: 'bg-green-100 text-green-700',
-  Viewer: 'bg-gray-100 text-gray-700',
+  Viewer: 'bg-slate-100 text-slate-700',
 };
 
 const PERM_LABELS = [
@@ -37,9 +37,9 @@ export default function RolesTab() {
       </div>
 
       {/* Permissions matrix */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
         {/* Header row */}
-        <div className="grid grid-cols-6 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="grid grid-cols-6 px-6 py-3 bg-slate-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase tracking-wide">
           <div className="col-span-2">Permission</div>
           {(['Admin','Manager','Sales','Viewer'] as const).map((r) => (
             <div key={r} className="text-center">
@@ -49,8 +49,8 @@ export default function RolesTab() {
         </div>
 
         {PERM_LABELS.map((label, idx) => (
-          <div key={label} className="grid grid-cols-6 px-6 py-3 border-b border-gray-50 last:border-0 items-center hover:bg-gray-50 transition-colors">
-            <div className="col-span-2 text-sm text-gray-700">{label}</div>
+          <div key={label} className="grid grid-cols-6 px-6 py-3 border-b border-slate-50 last:border-0 items-center hover:bg-slate-50 transition-colors">
+            <div className="col-span-2 text-sm text-slate-700">{label}</div>
             {/* Admin — always on */}
             <div className="flex items-center justify-center">
               <CheckCircle2 className="w-5 h-5 text-green-500" />
@@ -62,7 +62,7 @@ export default function RolesTab() {
                 <div key={role} className="flex items-center justify-center">
                   <button
                     onClick={() => togglePerm(role, idx)}
-                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 hover:border-blue-400'}`}
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${checked ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 hover:border-blue-400'}`}
                   >
                     {checked && <Check className="w-3 h-3 text-white" />}
                   </button>
