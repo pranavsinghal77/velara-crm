@@ -15,6 +15,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts';
 import { ApiError, api } from '../lib/api';
+import { leadValueLakhs, sumLeadValueLakhs } from '../lib/money';
 import { useCrmStore } from '../store/useCrmStore';
 
 // ─── constants ────────────────────────────────────────────────────────────────
@@ -35,14 +36,6 @@ const SOURCE_COLORS: Record<string, string> = {
 const FUNNEL_STAGES = ['New', 'Contacted', 'Qualified', 'Negotiation', 'Won'] as const;
 const FUNNEL_COLORS = ['#2563EB', '#6366F1', '#8B5CF6', '#F59E0B', '#10B981'];
 
-function parseBudget(b?: string): number {
-  if (!b) return 0;
-  const n = parseFloat(b.replace(/[^0-9.]/g, ''));
-  if (b.toLowerCase().includes('cr')) return n * 100;
-  if (b.toLowerCase().includes('l')) return n;
-  return n;
-}
-
 function fmt(v: number) {
   return v >= 100 ? `₹${(v / 100).toFixed(1)} Cr` : `₹${v.toFixed(1)} L`;
 }
@@ -51,8 +44,8 @@ function fmt(v: number) {
 
 export default function Analytics() {
   const [range, setRange] = useState<Range>('30 Days');
-  const [showAllRisks, setShowAllRisks] = useState(false);
   const leads = useCrmStore((s) => s.leads);
+  const reminders = useCrmStore((s) => s.reminders);
 
   // Weekly acquisition/conversion counts, aggregated server-side from this
   // organisation's own leads. This chart previously rendered a hardcoded
@@ -85,14 +78,16 @@ export default function Analytics() {
   }, []);
 
   // ── KPIs ──────────────────────────────────────────────────
-  const totalPipeline = useMemo(() => leads.reduce((s, l) => s + parseBudget(l.budget), 0), [leads]);
+  const totalPipeline = useMemo(() => sumLeadValueLakhs(leads), [leads]);
   const wonLeads = leads.filter((l) => l.status === 'Won');
   const convRate = leads.length ? ((wonLeads.length / leads.length) * 100) : 0;
-  const avgDeal = wonLeads.length ? wonLeads.reduce((s, l) => s + parseBudget(l.budget), 0) / wonLeads.length : 0;
+  const avgDeal = wonLeads.length ? sumLeadValueLakhs(wonLeads) / wonLeads.length : 0;
 
   // Observations computed from the pipeline in front of the user. Each one is
   // a plain aggregate, not a model output, so it is stated as a fact rather
   // than dressed up with an invented confidence score.
+  const overdueCount = reminders.filter((r) => !r.isCompleted && r.isOverdue).length;
+
   const insights = useMemo(() => {
     if (leads.length === 0) return [] as { emoji: string; text: string }[];
 
@@ -138,12 +133,77 @@ export default function Analytics() {
       out.push({
         emoji: '\u{1F4C8}',
         text: `${inNegotiation.length} deal(s) in Negotiation worth ${fmt(
-          inNegotiation.reduce((sum, l) => sum + parseBudget(l.budget), 0)
+          sumLeadValueLakhs(inNegotiation)
         )}`,
       });
     }
     return out;
   }, [leads, asOf]);
+
+  /**
+   * Weighted pipeline forecast: each open deal contributes its value times a
+   * stage probability. This replaces a panel that hardcoded "Projected revenue
+   * Rs 42.5L", "+18% vs last month", "87% AI confidence", "8 deals" and three
+   * invented pipeline risks - one of which happened to name a real lead, which
+   * made it read as a genuine finding.
+   *
+   * The weights are a stated assumption, not a model output, so the panel says
+   * so rather than claiming a confidence score.
+   */
+  const forecast = useMemo(() => {
+    const STAGE_WEIGHT: Record<string, number> = {
+      New: 0.1,
+      Contacted: 0.2,
+      Qualified: 0.4,
+      Negotiation: 0.7,
+    };
+
+    const open = leads.filter((l) => l.status !== 'Won' && l.status !== 'Lost');
+    const weighted = open.reduce(
+      (sum, l) => sum + leadValueLakhs(l) * (STAGE_WEIGHT[l.status] ?? 0),
+      0
+    );
+
+    const byStage = open.reduce<Record<string, number>>((acc, l) => {
+      acc[l.status] = (acc[l.status] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      weightedLakhs: weighted,
+      openCount: open.length,
+      byStage: Object.entries(byStage).sort(
+        (a, b) => (STAGE_WEIGHT[b[0]] ?? 0) - (STAGE_WEIGHT[a[0]] ?? 0)
+      ),
+    };
+  }, [leads]);
+
+  /** Risks read off the actual pipeline. Empty is a valid, honest result. */
+  const risks = useMemo(() => {
+    const out: string[] = [];
+    const open = leads.filter((l) => l.status !== 'Won' && l.status !== 'Lost');
+
+    const staleDays = (l: (typeof open)[number]) =>
+      l.lastContact ? Math.floor((asOf - new Date(l.lastContact).getTime()) / 86_400_000) : null;
+
+    open
+      .map((l) => ({ lead: l, days: staleDays(l) }))
+      .filter((x) => x.days === null || x.days >= 5)
+      .sort((a, b) => leadValueLakhs(b.lead) - leadValueLakhs(a.lead))
+      .slice(0, 3)
+      .forEach(({ lead, days }) => {
+        out.push(
+          days === null
+            ? `${lead.name} - never contacted (${fmt(leadValueLakhs(lead))})`
+            : `${lead.name} - no contact in ${days} days (${fmt(leadValueLakhs(lead))})`
+        );
+      });
+
+    const overdue = reminders.filter((r) => !r.isCompleted && r.isOverdue).length;
+    if (overdue > 0) out.push(`${overdue} overdue follow-up${overdue > 1 ? 's' : ''}`);
+
+    return out;
+  }, [leads, reminders, asOf]);
 
   // ── source pie ────────────────────────────────────────────
   const sourceData = useMemo(() => {
@@ -224,7 +284,7 @@ export default function Analytics() {
           { label: 'Total Revenue Pipeline', value: fmt(totalPipeline), icon: IndianRupee, color: 'text-green-600 bg-green-50', sub: `${leads.length} active leads` },
           { label: 'Conversion Rate', value: `${convRate.toFixed(1)}%`, icon: TrendingUp, color: 'text-blue-600 bg-blue-50', sub: `${wonLeads.length} won of ${leads.length}` },
           { label: 'Avg Deal Size', value: fmt(avgDeal), icon: Target, color: 'text-purple-600 bg-purple-50', sub: `across ${wonLeads.length} deals` },
-          { label: 'Lead Response Time', value: '2.4 hrs', icon: Clock, color: 'text-amber-600 bg-amber-50', sub: 'avg first response' },
+          { label: 'Overdue Follow-ups', value: String(overdueCount), icon: Clock, color: 'text-amber-600 bg-amber-50', sub: `of ${reminders.length} reminders` },
         ] as const).map((c) => {
           const Icon = c.icon;
           return (
@@ -240,87 +300,71 @@ export default function Analytics() {
         })}
       </div>
 
-      {/* ═══ AI REVENUE FORECASTER ═══════════════════════════ */}
+      {/* ═══ WEIGHTED PIPELINE FORECAST ═════════════════════ */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 border-l-4 border-l-purple-600 p-6">
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className="text-[#7C3AED]" />
-            <h3 className="text-sm font-bold text-gray-900">AI Revenue Forecast</h3>
-            <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">Next 30 Days</span>
+            <h3 className="text-sm font-bold text-gray-900">Weighted Pipeline Forecast</h3>
+            <span className="text-[11px] font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-full">Open deals</span>
           </div>
-          <span className="text-[11px] font-semibold text-[#7C3AED]">Powered by Velara AI</span>
+          <span className="text-[11px] text-gray-400">
+            Stage-weighted, not a prediction
+          </span>
         </div>
 
-        {/* Content */}
         <div className="flex gap-6">
-          {/* Section 1 — Forecast Numbers */}
+          {/* Weighted value */}
           <div className="flex-1">
-            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Projected Revenue</p>
-            <p className="text-3xl font-bold text-gray-900">₹42.5L</p>
-            <p className="text-xs text-green-600 font-semibold mt-0.5">↑ 18% vs last month</p>
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-gray-500">AI Confidence</span>
-                <span className="text-[11px] font-semibold text-[#7C3AED]">87%</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div className="h-full bg-[#7C3AED] rounded-full" style={{ width: '87%' }} />
-              </div>
-            </div>
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Weighted Value</p>
+            <p className="text-3xl font-bold text-gray-900">{fmt(forecast.weightedLakhs)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              from {fmt(sumLeadValueLakhs(leads.filter((l) => l.status !== 'Won' && l.status !== 'Lost')))} of open pipeline
+            </p>
+            <p className="text-[11px] text-gray-400 mt-3 leading-relaxed">
+              New 10% · Contacted 20% · Qualified 40% · Negotiation 70%
+            </p>
           </div>
 
-          {/* Divider */}
           <div className="w-px bg-gray-100 shrink-0" />
 
-          {/* Section 2 — Deals Expected */}
+          {/* Open deals by stage */}
           <div className="flex-1">
-            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Expected Deals to Close</p>
-            <p className="text-3xl font-bold text-gray-900">8 deals</p>
+            <p className="text-[11px] font-medium text-gray-500 uppercase tracking-wide mb-1">Open Deals</p>
+            <p className="text-3xl font-bold text-gray-900">
+              {forecast.openCount} {forecast.openCount === 1 ? 'deal' : 'deals'}
+            </p>
             <div className="mt-3 space-y-1.5">
-              {([
-                '🔥 3 HOT leads — very likely',
-                '📈 3 Qualified — likely',
-                '👀 2 Contacted — possible',
-              ] as const).map((item) => (
-                <p key={item} className="text-xs text-gray-600">{item}</p>
-              ))}
+              {forecast.byStage.length === 0 ? (
+                <p className="text-xs text-gray-400">No open deals.</p>
+              ) : (
+                forecast.byStage.map(([stage, count]) => (
+                  <p key={stage} className="text-xs text-gray-600">
+                    {count} in {stage}
+                  </p>
+                ))
+              )}
             </div>
           </div>
 
-          {/* Divider */}
           <div className="w-px bg-gray-100 shrink-0" />
 
-          {/* Section 3 — Risk Alerts */}
+          {/* Risks, derived */}
           <div className="flex-1">
-            <p className="text-[11px] font-medium text-amber-600 uppercase tracking-wide mb-2">⚠️ Pipeline Risks</p>
+            <p className="text-[11px] font-medium text-amber-600 uppercase tracking-wide mb-2">Pipeline Risks</p>
             <div className="space-y-1.5">
-              {([
-                'Rajesh Kumar — no contact 5 days',
-                '₹8L deal at risk of going cold',
-                'Competitor mentioned in 2 calls',
-              ] as const).map((risk) => (
-                <div key={risk} className="bg-amber-50 rounded p-2">
-                  <p className="text-xs text-amber-800">{risk}</p>
-                </div>
-              ))}
+              {risks.length === 0 ? (
+                <p className="text-xs text-gray-400">
+                  Nothing stale or overdue right now.
+                </p>
+              ) : (
+                risks.map((risk) => (
+                  <div key={risk} className="bg-amber-50 rounded p-2">
+                    <p className="text-xs text-amber-800">{risk}</p>
+                  </div>
+                ))
+              )}
             </div>
-            <button onClick={() => setShowAllRisks((prev) => !prev)} className="mt-2 text-[11px] font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-              View All Risks →
-            </button>
-            {showAllRisks ? (
-              <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 space-y-1">
-                {leads
-                  .filter((lead) => lead.status !== 'Won' && lead.status !== 'Lost')
-                  .sort((a, b) => a.aiScore - b.aiScore)
-                  .slice(0, 5)
-                  .map((lead) => (
-                    <p key={lead.id} className="text-[11px] text-amber-900">
-                      {lead.name} ({lead.aiScore}) needs intervention.
-                    </p>
-                  ))}
-              </div>
-            ) : null}
           </div>
         </div>
       </div>

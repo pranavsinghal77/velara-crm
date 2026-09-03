@@ -11,6 +11,7 @@ import {
   Cell,
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import { sumLeadValueLakhs } from '../lib/money';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
 
@@ -56,22 +57,15 @@ export default function Dashboard() {
   const followUpsDue = reminders.filter((r) => r.isToday && !r.isCompleted).length;
   const wonThisMonth = leads.filter((l) => l.status === 'Won').length;
 
-  const totalPipelineLakhs = useMemo(() => {
-    return leads.reduce((sum, l) => {
-      if (l.status === 'Lost') return sum;
-      const num = parseFloat((l.budget || '2').replace(/[^0-9.]/g, ''));
-      return sum + (isNaN(num) ? 2 : num);
-    }, 0);
-  }, [leads]);
+  const totalPipelineLakhs = useMemo(
+    () => sumLeadValueLakhs(leads.filter((l) => l.status !== 'Lost')),
+    [leads]
+  );
 
-  const wonRevenueLakhs = useMemo(() => {
-    return leads
-      .filter((l) => l.status === 'Won')
-      .reduce((sum, l) => {
-        const num = parseFloat((l.budget || '2').replace(/[^0-9.]/g, ''));
-        return sum + (isNaN(num) ? 2 : num);
-      }, 0);
-  }, [leads]);
+  const wonRevenueLakhs = useMemo(
+    () => sumLeadValueLakhs(leads.filter((l) => l.status === 'Won')),
+    [leads]
+  );
 
   // ── Lead Source Distribution ─────────────────────────────
   const sourceData = useMemo(() => {
@@ -121,12 +115,7 @@ export default function Dashboard() {
       .map((u) => {
         const repLeads = leads.filter((l) => l.assignedTo === u.name || l.assignedTo === u.id);
         const wonCount = repLeads.filter((l) => l.status === 'Won').length;
-        const repRevenue = repLeads
-          .filter((l) => l.status === 'Won')
-          .reduce((sum, l) => {
-            const num = parseFloat((l.budget || '2').replace(/[^0-9.]/g, ''));
-            return sum + (isNaN(num) ? 2 : num);
-          }, 0);
+        const repRevenue = sumLeadValueLakhs(repLeads.filter((l) => l.status === 'Won'));
 
         return {
           ...u,

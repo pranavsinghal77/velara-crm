@@ -20,7 +20,9 @@ import { Pool } from 'pg';
 import 'dotenv/config';
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+const prisma = new PrismaClient({
+  adapter: new PrismaPg(pool, { schema: process.env.DB_SCHEMA || 'public' }),
+});
 
 const ORG_SLUG = 'velara-demo';
 const RESET = process.argv.includes('--reset');

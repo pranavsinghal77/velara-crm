@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Plus, Search, Trash2, Download, LayoutGrid, List, ArrowRight, Building, MapPin, IndianRupee } from 'lucide-react';
+import { sumLeadValueLakhs } from '../lib/money';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
 
@@ -73,13 +74,7 @@ export default function LeadPipeline() {
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // ── total pipeline value ─────────────────────────────────
-  const pipelineValueLakhs = useMemo(() => {
-    return leads.reduce((sum, l) => {
-      if (!l.budget) return sum + 2;
-      const num = parseFloat(l.budget.replace(/[^0-9.]/g, ''));
-      return sum + (isNaN(num) ? 2 : num);
-    }, 0);
-  }, [leads]);
+  const pipelineValueLakhs = useMemo(() => sumLeadValueLakhs(leads), [leads]);
 
   // ── AI score preview ─────────────────────────────────────
   function calcScore(f: typeof form) {
@@ -376,10 +371,7 @@ export default function LeadPipeline() {
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4">
           {KANBAN_STAGES.map((stage) => {
             const stageLeads = filtered.filter((l) => l.status === stage.id);
-            const stageValue = stageLeads.reduce((sum, l) => {
-              const num = parseFloat((l.budget || '2').replace(/[^0-9.]/g, ''));
-              return sum + (isNaN(num) ? 2 : num);
-            }, 0);
+            const stageValue = sumLeadValueLakhs(stageLeads);
 
             return (
               <div key={stage.id} className="glass-panel bg-slate-50/50 rounded-2xl p-3 flex flex-col min-w-[250px]">

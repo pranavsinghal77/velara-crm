@@ -14,6 +14,12 @@ const schema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
 
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  /**
+   * Postgres schema holding the tables. Prisma's `?schema=` URL parameter is
+   * ignored when a driver adapter is in use, so it has to be passed to the
+   * adapter explicitly - see config/db.ts.
+   */
+  DB_SCHEMA: z.string().min(1).default('public'),
 
   JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET must be at least 32 chars'),
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 chars'),

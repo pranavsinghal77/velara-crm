@@ -29,7 +29,9 @@ const pool =
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter: new PrismaPg(pool),
+    // Without this the adapter qualifies every table as "public".<table>,
+    // whatever the connection's search_path says.
+    adapter: new PrismaPg(pool, { schema: env.DB_SCHEMA }),
     log: env.isProduction ? ['warn', 'error'] : ['warn', 'error'],
   });
 
