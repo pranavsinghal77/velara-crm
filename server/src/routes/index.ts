@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth';
 import aiRoutes from './ai.routes';
+import attendanceRoutes from './attendance.routes';
+import documentRoutes from './document.routes';
+import workflowRoutes from './workflow.routes';
 import connectivityRoutes from './connectivity.routes';
 import mcpRoutes from './mcp.routes';
 import platformRoutes from './platform.routes';
@@ -45,6 +48,9 @@ router.use('/analytics', analyticsRoutes);
 router.use('/ai', aiRoutes);
 router.use('/connectivity', connectivityRoutes);
 router.use('/social', socialRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/documents', documentRoutes);
+router.use('/workflows', workflowRoutes);
 
 // Cross-tenant operator console. Gated again inside by requirePlatformAdmin.
 router.use('/platform', platformRoutes);

@@ -641,3 +641,19 @@ export const socialPostListQuery = z.object({
     .optional(),
 });
 export type SocialPostListQuery = z.infer<typeof socialPostListQuery>;
+
+export const updateDocumentSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    category: z
+      .enum(['Contracts', 'Proposals', 'Invoices', 'Compliance', 'Marketing', 'Other'])
+      .optional(),
+    leadId: z.string().uuid().nullable().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
+export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
+
+/// Optional: omit to let the server pick a recent open lead to test against.
+export const testWorkflowSchema = z.object({
+  leadId: z.string().uuid().optional(),
+});

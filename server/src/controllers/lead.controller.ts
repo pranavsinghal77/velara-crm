@@ -11,6 +11,8 @@ import type {
 } from '../schemas';
 import { badRequest, notFound } from '../utils/httpError';
 import { parseBudgetToLakhs, serializeLead } from '../utils/serializers';
+import { createLeadViaTool } from '../services/leadWrite.service';
+import { dispatchEvent } from '../services/events.service';
 import { fromDateAndTime } from '../utils/time';
 
 /**
@@ -94,17 +96,25 @@ export async function createLead(req: Request, res: Response) {
       ? userId
       : await assertOrgMember(orgId, input.assignedTo);
 
-  const lead = await prisma.lead.create({
-    data: {
-      orgId,
-      ownerId,
+  // Through the shared write service, not a local prisma.create. That service
+  // is what enforces the plan allowance, records the lead_created usage event
+  // and dispatches lead.created so workflows and webhooks fire. This path
+  // duplicated the insert instead, so leads made through the app (that is,
+  // almost all of them) were unmetered and triggered no automation, while the
+  // same lead created over MCP did both.
+  const lead = await createLeadViaTool({
+    orgId,
+    actorId: userId,
+    apiKeyId: req.apiKeyId,
+    ownerId,
+    input: {
       name: input.name,
       email: input.email,
       phone: input.phone,
       source: input.source,
       status: input.status,
       aiScore: input.aiScore,
-      aiScoreBreakdown: input.aiScoreBreakdown ?? undefined,
+      aiScoreBreakdown: input.aiScoreBreakdown,
       isHot: input.isHot,
       tags: input.tags,
       notes: input.notes,
@@ -112,8 +122,7 @@ export async function createLead(req: Request, res: Response) {
       designation: input.designation,
       city: input.city,
       budget: input.budget,
-      budgetLakhs: parseBudgetToLakhs(input.budget),
-      lastContactAt: input.lastContact ? fromDateAndTime(input.lastContact) : null,
+      lastContact: input.lastContact,
     },
   });
 
@@ -133,7 +142,7 @@ export async function updateLead(req: Request, res: Response) {
 
   const existing = await prisma.lead.findFirst({
     where: { id, orgId },
-    select: { id: true, name: true },
+    select: { id: true, name: true, status: true },
   });
   if (!existing) throw notFound('Lead not found');
 
@@ -165,6 +174,16 @@ export async function updateLead(req: Request, res: Response) {
   }
 
   const lead = await prisma.lead.update({ where: { id }, data });
+
+  // Fires lead_status_changed workflows and webhooks, but only on an actual
+  // transition, so re-saving a lead at the same stage is not an event.
+  if (input.status !== undefined && input.status !== existing.status) {
+    void dispatchEvent({
+      orgId,
+      type: 'lead.status_changed',
+      payload: { leadId: lead.id, lead, previousStatus: existing.status },
+    });
+  }
 
   // Keep the denormalised name on reminders in step with the lead.
   if (input.name !== undefined && input.name !== existing.name) {
