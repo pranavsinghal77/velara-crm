@@ -107,29 +107,29 @@ export default function Leaderboard() {
   const podiumOrder = top3.length >= 3 ? [top3[1], top3[0], top3[2]] : top3;
 
   const podiumConfig = [
-    { place: '2nd', medal: '🥈', borderColor: 'border-gray-400', avatarSize: 'w-12 h-12', podiumH: 'h-24', bg: 'from-gray-100 to-gray-200', badgeCls: 'bg-gray-200 text-gray-700', textColor: 'text-gray-600' },
+    { place: '2nd', medal: '🥈', borderColor: 'border-slate-400', avatarSize: 'w-12 h-12', podiumH: 'h-24', bg: 'from-slate-100 to-slate-200', badgeCls: 'bg-slate-200 text-slate-700', textColor: 'text-slate-600' },
     { place: '1st', medal: '👑', borderColor: 'border-yellow-400', avatarSize: 'w-16 h-16', podiumH: 'h-32', bg: 'from-yellow-50 to-amber-100', badgeCls: 'bg-amber-400 text-white', textColor: 'text-amber-600' },
     { place: '3rd', medal: '🥉', borderColor: 'border-orange-400', avatarSize: 'w-11 h-11', podiumH: 'h-20', bg: 'from-orange-50 to-orange-100', badgeCls: 'bg-orange-400 text-white', textColor: 'text-orange-600' },
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-stack">
       {/* ═══ HEADER ══════════════════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2">
             <Trophy size={24} className="text-amber-500 fill-amber-400" />
-            <h1 className="text-2xl font-bold text-gray-900">Sales Leaderboard</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Sales Leaderboard</h1>
             <span className="flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-600">
               <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
               LIVE
             </span>
           </div>
-          <p className="text-sm text-gray-500 mt-0.5">Live competition board — Q1 {new Date().getFullYear()}</p>
+          <p className="text-sm text-slate-500 mt-0.5">Live competition board — Q1 {new Date().getFullYear()}</p>
         </div>
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-0.5">
           {(['This Week', 'This Month', 'This Quarter'] as Period[]).map((p) => (
-            <button key={p} onClick={() => setPeriod(p)} className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${period === p ? 'bg-[#2563EB] text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}>
+            <button key={p} onClick={() => setPeriod(p)} className={`text-xs font-semibold px-3 py-1.5 rounded-md transition-colors ${period === p ? 'bg-[#2563EB] text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>
               {p}
             </button>
           ))}
@@ -137,8 +137,8 @@ export default function Leaderboard() {
       </div>
 
       {/* ═══ PODIUM ══════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-sm font-bold text-gray-700 text-center mb-6 uppercase tracking-widest">🏆 Top Performers</h2>
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+        <h2 className="text-sm font-bold text-slate-700 text-center mb-6 uppercase tracking-widest">🏆 Top Performers</h2>
         <div className="flex items-end justify-center gap-6">
           {podiumOrder.map((rep, idx) => {
             if (!rep) return null;
@@ -153,16 +153,16 @@ export default function Leaderboard() {
                 </div>
                 {/* name */}
                 <div className="text-center">
-                  <p className="text-sm font-bold text-gray-900">{rep.name}</p>
+                  <p className="text-sm font-bold text-slate-900">{rep.name}</p>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badgeCls}`}>{cfg.place} Place</span>
                 </div>
                 {/* stats */}
                 <div className="text-center">
                   <p className={`text-lg font-bold ${cfg.textColor}`}>{fmtRevenue(rep.revenue)}</p>
-                  <p className="text-[11px] text-gray-500">{rep.won} Deals Won</p>
+                  <p className="text-[11px] text-slate-500">{rep.won} Deals Won</p>
                 </div>
                 {/* podium base */}
-                <div className={`w-28 ${cfg.podiumH} rounded-t-xl bg-gradient-to-b ${cfg.bg} border border-gray-200 flex items-center justify-center`}>
+                <div className={`w-28 ${cfg.podiumH} rounded-t-xl bg-gradient-to-b ${cfg.bg} border border-slate-200 flex items-center justify-center`}>
                   <p className={`text-2xl font-black ${cfg.textColor}`}>{cfg.place.charAt(0)}</p>
                 </div>
               </div>
@@ -181,8 +181,8 @@ export default function Leaderboard() {
         ]).map((c) => (
           <div key={c.title} className={`rounded-xl border p-4 ${c.color}`}>
             <p className="text-2xl mb-1">{c.emoji}</p>
-            <p className="text-sm font-bold text-gray-900">{c.title}</p>
-            <p className="text-lg font-black text-gray-800 mt-1">{c.prize}</p>
+            <p className="text-sm font-bold text-slate-900">{c.title}</p>
+            <p className="text-lg font-black text-slate-800 mt-1">{c.prize}</p>
             <div className="flex items-center gap-1.5 mt-2">
               <div className="w-6 h-6 rounded-full bg-[#2563EB] flex items-center justify-center text-white text-[9px] font-bold shrink-0">
                 {initials(c.leader)}
@@ -196,14 +196,14 @@ export default function Leaderboard() {
       {/* ═══ MAIN TABLE + CHARTS ═════════════════════════════ */}
       <div className="flex gap-5">
         {/* Full rankings table */}
-        <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 p-5 min-w-0">
+        <div className="flex-1 bg-white rounded-xl shadow-sm border border-slate-100 p-5 min-w-0">
           <div className="flex items-center gap-2 mb-4">
             <Users size={16} className="text-blue-600" />
-            <h3 className="text-sm font-bold text-gray-900">Full Rankings</h3>
+            <h3 className="text-sm font-bold text-slate-900">Full Rankings</h3>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-[11px] text-gray-500 border-b border-gray-100">
+              <tr className="text-[11px] text-slate-500 border-b border-slate-100">
                 <th className="pb-2 font-medium text-left w-8">#</th>
                 <th className="pb-2 font-medium text-left">Rep</th>
                 <th className="pb-2 font-medium text-center">Leads</th>
@@ -220,7 +220,7 @@ export default function Leaderboard() {
                 const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
                 const maxRev = reps[0]?.revenue || 1;
                 return (
-                  <tr key={rep.id} className={`border-b border-gray-50 ${i < 3 ? 'bg-amber-50/30' : 'hover:bg-gray-50/50'}`}>
+                  <tr key={rep.id} className={`border-b border-slate-50 ${i < 3 ? 'bg-amber-50/30' : 'hover:bg-slate-50/50'}`}>
                     <td className="py-3 text-center font-bold text-base">{rankEmoji}</td>
                     <td className="py-3">
                       <div className="flex items-center gap-2.5">
@@ -228,21 +228,21 @@ export default function Leaderboard() {
                           {initials(rep.name)}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{rep.name}</p>
-                          <p className="text-[10px] text-gray-400">{rep.role}</p>
+                          <p className="font-semibold text-slate-900">{rep.name}</p>
+                          <p className="text-[10px] text-slate-400">{rep.role}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 text-center text-gray-600">{rep.leads}</td>
-                    <td className="py-3 text-center font-semibold text-gray-900">{rep.won}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.leads}</td>
+                    <td className="py-3 text-center font-semibold text-slate-900">{rep.won}</td>
                     <td className="py-3 text-center font-bold text-green-600">{fmtRevenue(rep.revenue)}</td>
-                    <td className="py-3 text-center text-gray-600">{rep.avgScore}</td>
-                    <td className="py-3 text-center text-gray-600">{rep.calls}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.avgScore}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.calls}</td>
                     <td className="py-3 text-center">
                       <span className="font-bold text-orange-500">{rep.streak} 🔥</span>
                     </td>
                     <td className="py-3 pl-3 w-32">
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
                         <div className="h-full rounded-full transition-all" style={{ width: `${(rep.revenue / maxRev) * 100}%`, backgroundColor: COLORS[i % COLORS.length] }} />
                       </div>
                     </td>
@@ -255,28 +255,28 @@ export default function Leaderboard() {
                 const idx = i + top3.length;
                 const maxRev = reps[0]?.revenue || 1;
                 return (
-                  <tr key={rep.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="py-3 text-center text-gray-500 font-semibold">{idx + 1}</td>
+                  <tr key={rep.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                    <td className="py-3 text-center text-slate-500 font-semibold">{idx + 1}</td>
                     <td className="py-3">
                       <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-300 flex items-center justify-center text-white text-xs font-bold shrink-0">
                           {initials(rep.name)}
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-900">{rep.name}</p>
-                          <p className="text-[10px] text-gray-400">{rep.role}</p>
+                          <p className="font-semibold text-slate-900">{rep.name}</p>
+                          <p className="text-[10px] text-slate-400">{rep.role}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 text-center text-gray-600">{rep.leads}</td>
-                    <td className="py-3 text-center font-semibold text-gray-900">{rep.won}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.leads}</td>
+                    <td className="py-3 text-center font-semibold text-slate-900">{rep.won}</td>
                     <td className="py-3 text-center font-bold text-green-600">{fmtRevenue(rep.revenue)}</td>
-                    <td className="py-3 text-center text-gray-600">{rep.avgScore}</td>
-                    <td className="py-3 text-center text-gray-600">{rep.calls}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.avgScore}</td>
+                    <td className="py-3 text-center text-slate-600">{rep.calls}</td>
                     <td className="py-3 text-center"><span className="font-bold text-orange-500">{rep.streak} 🔥</span></td>
                     <td className="py-3 pl-3 w-32">
-                      <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-gray-400 rounded-full" style={{ width: `${(rep.revenue / maxRev) * 100}%` }} />
+                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-slate-400 rounded-full" style={{ width: `${(rep.revenue / maxRev) * 100}%` }} />
                       </div>
                     </td>
                   </tr>
@@ -289,10 +289,10 @@ export default function Leaderboard() {
         {/* Right: charts */}
         <div className="w-[300px] shrink-0 space-y-4">
           {/* Weekly activity chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp size={14} className="text-blue-600" />
-              <h4 className="text-xs font-bold text-gray-900">Daily Deals This Week</h4>
+              <h4 className="text-xs font-bold text-slate-900">Daily Deals This Week</h4>
             </div>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={WEEKLY_DATA} barSize={6}>
@@ -309,12 +309,12 @@ export default function Leaderboard() {
 
           {/* Radar for top performer */}
           {topRep && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Star size={14} className="text-amber-500 fill-amber-400" />
-                <h4 className="text-xs font-bold text-gray-900">Top Performer Radar</h4>
+                <h4 className="text-xs font-bold text-slate-900">Top Performer Radar</h4>
               </div>
-              <p className="text-[10px] text-gray-400 mb-2">{topRep.name}</p>
+              <p className="text-[10px] text-slate-400 mb-2">{topRep.name}</p>
               <ResponsiveContainer width="100%" height={160}>
                 <RadarChart data={radarData}>
                   <PolarGrid stroke="#E2E8F0" />
@@ -326,8 +326,8 @@ export default function Leaderboard() {
           )}
 
           {/* Quick stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4 space-y-3">
-            <h4 className="text-xs font-bold text-gray-900">Team Summary</h4>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-4 space-y-3">
+            <h4 className="text-xs font-bold text-slate-900">Team Summary</h4>
             {([
               { icon: Target,  label: 'Total Deals Won',   value: reps.reduce((s, r) => s + r.won, 0),              color: 'text-green-600 bg-green-50' },
               { icon: Phone,   label: 'Total Calls Made',  value: reps.reduce((s, r) => s + r.calls, 0),            color: 'text-blue-600 bg-blue-50' },
@@ -339,8 +339,8 @@ export default function Leaderboard() {
                 <div key={s.label} className="flex items-center gap-2.5">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${s.color}`}><Icon size={14} /></div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] text-gray-500">{s.label}</p>
-                    <p className="text-sm font-bold text-gray-900">{s.value}</p>
+                    <p className="text-[10px] text-slate-500">{s.label}</p>
+                    <p className="text-sm font-bold text-slate-900">{s.value}</p>
                   </div>
                 </div>
               );

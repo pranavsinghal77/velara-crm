@@ -58,25 +58,25 @@ export default function CallHistory({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="p-4 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-600" />
-          <h3 className="text-sm font-bold text-gray-900">Call Recordings & History</h3>
+          <Clock className="w-4 h-4 text-slate-600" />
+          <h3 className="text-sm font-bold text-slate-900">Call Recordings & History</h3>
         </div>
-        <span className="text-xs text-gray-400">{filteredCalls.length} calls</span>
+        <span className="text-xs text-slate-400">{filteredCalls.length} calls</span>
       </div>
 
       {/* Filter tabs */}
       <div className="px-4 pt-3">
-        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+        <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
           {HISTORY_TABS.map((t) => (
             <button
               key={t}
               onClick={() => setHistoryFilter(t)}
               className={`flex-1 text-[11px] font-medium py-1 rounded-md transition-colors ${
-                historyFilter === t ? 'bg-white shadow-sm text-gray-800' : 'text-gray-500 hover:text-gray-700'
+                historyFilter === t ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {t}
@@ -86,23 +86,23 @@ export default function CallHistory({
       </div>
 
       {/* Search */}
-      <div className="mx-4 mt-3 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-        <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+      <div className="mx-4 mt-3 flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+        <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
         <input
           value={callSearch}
           onChange={(e) => setCallSearch(e.target.value)}
           placeholder="Search calls..."
-          className="flex-1 text-sm bg-transparent outline-none text-gray-700 placeholder-gray-400"
+          className="flex-1 text-sm bg-transparent outline-none text-slate-700 placeholder-slate-400"
         />
       </div>
 
       {/* Audio player */}
       {playingCall && (
-        <div className="mx-4 mt-3 bg-gray-50 rounded-xl p-3 border border-gray-200">
+        <div className="mx-4 mt-3 bg-slate-50 rounded-xl p-3 border border-slate-200">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="text-sm font-semibold text-gray-800">{playingCall.leadName}</p>
-              <p className="text-xs text-gray-400">{playingCall.duration}</p>
+              <p className="text-sm font-semibold text-slate-800">{playingCall.leadName}</p>
+              <p className="text-xs text-slate-400">{playingCall.duration}</p>
             </div>
             <button
               onClick={() => {
@@ -110,7 +110,7 @@ export default function CallHistory({
                 setIsPlaying(false);
                 if (playTimerRef.current) clearInterval(playTimerRef.current);
               }}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-slate-400 hover:text-slate-600"
             >
               <X className="w-4 h-4" />
             </button>
@@ -122,10 +122,10 @@ export default function CallHistory({
             >
               {isPlaying ? <Pause className="w-3.5 h-3.5 text-white" /> : <Play className="w-3.5 h-3.5 text-white" />}
             </button>
-            <div className="flex-1 bg-gray-200 rounded-full h-2 cursor-pointer">
+            <div className="flex-1 bg-slate-200 rounded-full h-2 cursor-pointer">
               <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${playProgress}%` }} />
             </div>
-            <span className="text-xs text-gray-500 shrink-0 tabular-nums">
+            <span className="text-xs text-slate-500 shrink-0 tabular-nums">
               {String(Math.floor((playProgress / 100) * 5)).padStart(2, '0')}:
               {String(Math.floor(((playProgress / 100) * 5 * 60) % 60)).padStart(2, '0')} / {playingCall.duration}
             </span>
@@ -144,19 +144,19 @@ export default function CallHistory({
             <button
               key={c.id}
               onClick={() => setSelectedCall(isSelected ? null : c)}
-              className={`w-full flex items-center gap-3 p-4 hover:bg-gray-50 border-b border-gray-50 last:border-0 transition-colors text-left ${isSelected ? 'bg-blue-50' : ''}`}
+              className={`w-full flex items-center gap-3 p-4 hover:bg-slate-50 border-b border-slate-50 last:border-0 transition-colors text-left ${isSelected ? 'bg-blue-50' : ''}`}
             >
               <div className={`w-9 h-9 rounded-full ${dirBg} flex items-center justify-center shrink-0`}>
                 <DirIcon className={`w-4 h-4 ${dirColor}`} />
               </div>
               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-gray-900">{c.leadName}</span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${c.callType === 'VoIP' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className="text-sm font-semibold text-slate-900">{c.leadName}</span>
+                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${c.callType === 'VoIP' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
                     {c.callType}
                   </span>
                 </div>
-                <span className="text-xs text-gray-500">{c.date}</span>
+                <span className="text-xs text-slate-500">{c.date}</span>
                 <span className={`text-xs font-medium ${c.direction === 'missed' ? 'text-red-500' : 'text-green-600'}`}>
                   {c.duration}
                 </span>

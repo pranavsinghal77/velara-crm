@@ -1,21 +1,6 @@
 import { useState, useMemo } from 'react';
-import {
-  Plus,
-  Search,
-  Trash2,
-  Download,
-  LayoutGrid,
-  List,
-  Phone,
-  MessageSquare,
-  ArrowRight,
-  ChevronRight,
-  TrendingUp,
-  Sparkles,
-  Building,
-  MapPin,
-  IndianRupee,
-} from 'lucide-react';
+import { Plus, Search, Trash2, Download, LayoutGrid, List, ArrowRight, Building, MapPin, IndianRupee } from 'lucide-react';
+import { sumLeadValueLakhs } from '../lib/money';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
 
@@ -89,13 +74,7 @@ export default function LeadPipeline() {
   const paged = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   // ── total pipeline value ─────────────────────────────────
-  const pipelineValueLakhs = useMemo(() => {
-    return leads.reduce((sum, l) => {
-      if (!l.budget) return sum + 2;
-      const num = parseFloat(l.budget.replace(/[^0-9.]/g, ''));
-      return sum + (isNaN(num) ? 2 : num);
-    }, 0);
-  }, [leads]);
+  const pipelineValueLakhs = useMemo(() => sumLeadValueLakhs(leads), [leads]);
 
   // ── AI score preview ─────────────────────────────────────
   function calcScore(f: typeof form) {
@@ -268,12 +247,12 @@ export default function LeadPipeline() {
   const viewLead = viewId ? leads.find((l) => l.id === viewId) || null : null;
 
   return (
-    <div className="space-y-5 p-6">
+    <div className="page-stack">
       {/* ═══ HEADER ══════════════════════════════════════════ */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline & Deal Desk</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Lead Pipeline & Deal Desk</h1>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
               {filtered.length} Leads
             </span>
@@ -282,18 +261,18 @@ export default function LeadPipeline() {
               ₹{pipelineValueLakhs.toFixed(1)}L Pipeline
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Omnichannel Indian B2B pipeline with IndiaMART/JustDial ingestion and AI scoring.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
-          <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+          <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
             <button
               onClick={() => setViewMode('kanban')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                viewMode === 'kanban' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'kanban' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <LayoutGrid size={14} />
@@ -302,7 +281,7 @@ export default function LeadPipeline() {
             <button
               onClick={() => setViewMode('table')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${
-                viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+                viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <List size={14} />
@@ -312,7 +291,7 @@ export default function LeadPipeline() {
 
           <button
             onClick={handleExport}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
           >
             <Download size={14} /> Export CSV
           </button>
@@ -328,7 +307,7 @@ export default function LeadPipeline() {
       {/* ═══ FILTERS ══════════════════════════════════════════ */}
       <div className="flex flex-wrap gap-3">
         <div className="relative flex-1 min-w-[220px]">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             value={search}
             onChange={(e) => {
@@ -336,7 +315,7 @@ export default function LeadPipeline() {
               setPage(1);
             }}
             placeholder="Search by name, company, phone, email..."
-            className="w-full pl-9 pr-3 py-2 text-xs border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
           />
         </div>
 
@@ -346,7 +325,7 @@ export default function LeadPipeline() {
             setFSource(e.target.value);
             setPage(1);
           }}
-          className="text-xs px-3 py-2 border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
+          className="text-xs px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
         >
           <option value="">All Sources</option>
           {SOURCES.map((s) => (
@@ -362,7 +341,7 @@ export default function LeadPipeline() {
             setFStatus(e.target.value);
             setPage(1);
           }}
-          className="text-xs px-3 py-2 border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
+          className="text-xs px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
         >
           <option value="">All Statuses</option>
           {STATUSES.map((s) => (
@@ -378,7 +357,7 @@ export default function LeadPipeline() {
             setFScore(e.target.value);
             setPage(1);
           }}
-          className="text-xs px-3 py-2 border border-gray-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
+          className="text-xs px-3 py-2 border border-slate-200 bg-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm font-medium"
         >
           <option value="">All AI Scores</option>
           <option value="hot">🔥 Hot (Above 75)</option>
@@ -389,13 +368,10 @@ export default function LeadPipeline() {
 
       {/* ═══ KANBAN VIEW ══════════════════════════════════════ */}
       {viewMode === 'kanban' ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4 stagger">
           {KANBAN_STAGES.map((stage) => {
             const stageLeads = filtered.filter((l) => l.status === stage.id);
-            const stageValue = stageLeads.reduce((sum, l) => {
-              const num = parseFloat((l.budget || '2').replace(/[^0-9.]/g, ''));
-              return sum + (isNaN(num) ? 2 : num);
-            }, 0);
+            const stageValue = sumLeadValueLakhs(stageLeads);
 
             return (
               <div key={stage.id} className="glass-panel bg-slate-50/50 rounded-2xl p-3 flex flex-col min-w-[250px]">
@@ -403,7 +379,7 @@ export default function LeadPipeline() {
                 <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-200">
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${stage.id === 'Won' ? 'bg-emerald-500' : stage.id === 'Negotiation' ? 'bg-amber-500' : stage.id === 'Qualified' ? 'bg-purple-500' : 'bg-blue-500'}`} />
-                    <h3 className="font-bold text-xs text-gray-800 tracking-wide">{stage.label}</h3>
+                    <h3 className="font-bold text-xs text-slate-800 tracking-wide">{stage.label}</h3>
                   </div>
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700 shadow-2xs">
                     {stageLeads.length}
@@ -417,7 +393,7 @@ export default function LeadPipeline() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
+                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-320px)] pr-1 stagger stagger-tight">
                   {stageLeads.length === 0 ? (
                     <div className="py-8 text-center text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                       No leads in this stage
@@ -432,7 +408,7 @@ export default function LeadPipeline() {
                         <div className="flex items-start justify-between gap-2">
                           <button
                             onClick={() => setViewId(lead.id)}
-                            className="font-bold text-xs text-gray-900 hover:text-blue-600 text-left line-clamp-1"
+                            className="font-bold text-xs text-slate-900 hover:text-blue-600 text-left line-clamp-1"
                           >
                             {lead.name}
                           </button>
@@ -444,7 +420,7 @@ export default function LeadPipeline() {
                         </div>
 
                         {/* Company / City */}
-                        <div className="mt-1 text-[11px] text-gray-500 flex items-center gap-2">
+                        <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-2">
                           {lead.company && (
                             <span className="flex items-center gap-1 truncate font-medium">
                               <Building size={11} className="shrink-0 text-slate-400" />
@@ -461,7 +437,7 @@ export default function LeadPipeline() {
 
                         {/* Source Badge & Budget */}
                         <div className="mt-2.5 flex items-center justify-between gap-1 text-[10px]">
-                          <span className={`px-2 py-0.5 rounded-full font-semibold border ${SOURCE_BADGES[lead.source] || 'bg-gray-100 text-gray-700'}`}>
+                          <span className={`px-2 py-0.5 rounded-full font-semibold border ${SOURCE_BADGES[lead.source] || 'bg-slate-100 text-slate-700'}`}>
                             {lead.source}
                           </span>
                           <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded font-mono">
@@ -502,7 +478,7 @@ export default function LeadPipeline() {
         </div>
       ) : (
         /* ═══ TABLE VIEW ═══════════════════════════════════════ */
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
           {selected.size > 0 && (
             <div className="flex items-center justify-between p-3 bg-blue-50 border-b border-blue-200 text-xs">
               <span className="font-semibold text-blue-800">{selected.size} selected</span>
@@ -551,12 +527,12 @@ export default function LeadPipeline() {
       />
 
       {deleteId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl border border-gray-200">
-            <h3 className="font-bold text-gray-900 text-sm">Delete Lead</h3>
-            <p className="text-xs text-gray-600">Are you sure you want to delete this lead from the pipeline and database?</p>
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overlay-enter">
+          <div className="bg-white rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl border border-slate-200 modal-enter">
+            <h3 className="font-bold text-slate-900 text-sm">Delete Lead</h3>
+            <p className="text-xs text-slate-600">Are you sure you want to delete this lead from the pipeline and database?</p>
             <div className="flex justify-end gap-2 text-xs">
-              <button onClick={() => setDeleteId(null)} className="px-3 py-1.5 border border-gray-200 rounded hover:bg-gray-50">
+              <button onClick={() => setDeleteId(null)} className="px-3 py-1.5 border border-slate-200 rounded hover:bg-slate-50">
                 Cancel
               </button>
               <button onClick={handleDelete} className="px-3 py-1.5 bg-red-600 text-white rounded hover:bg-red-700 font-bold">

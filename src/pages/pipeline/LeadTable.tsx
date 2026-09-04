@@ -31,49 +31,49 @@ export default function LeadTable({
   totalPages,
 }: LeadTableProps) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-100 text-left">
+          <tr className="border-b border-slate-100 text-left">
             <th className="p-3 w-10">
               <input
                 type="checkbox"
                 checked={paged.length > 0 && paged.every((l) => selected.has(l.id))}
                 onChange={toggleAll}
-                className="rounded border-gray-300"
+                className="rounded border-slate-300"
               />
             </th>
-            <th className="p-3 font-semibold text-gray-600">LEAD</th>
-            <th className="p-3 font-semibold text-gray-600">CONTACT</th>
-            <th className="p-3 font-semibold text-gray-600">SOURCE</th>
-            <th className="p-3 font-semibold text-gray-600">STATUS</th>
-            <th className="p-3 font-semibold text-gray-600">AI SCORE</th>
-            <th className="p-3 font-semibold text-gray-600">AI PREDICTION</th>
-            <th className="p-3 font-semibold text-gray-600">LAST CONTACT</th>
-            <th className="p-3 font-semibold text-gray-600 text-right">ACTIONS</th>
+            <th className="p-3 font-semibold text-slate-600">LEAD</th>
+            <th className="p-3 font-semibold text-slate-600">CONTACT</th>
+            <th className="p-3 font-semibold text-slate-600">SOURCE</th>
+            <th className="p-3 font-semibold text-slate-600">STATUS</th>
+            <th className="p-3 font-semibold text-slate-600">AI SCORE</th>
+            <th className="p-3 font-semibold text-slate-600">AI PREDICTION</th>
+            <th className="p-3 font-semibold text-slate-600">LAST CONTACT</th>
+            <th className="p-3 font-semibold text-slate-600 text-right">ACTIONS</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="stagger stagger-tight">
           {paged.map((l) => {
             const days = daysSince(l.lastContact);
             const prediction = getPrediction(l.aiScore, l.status);
             return (
-              <tr key={l.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+              <tr key={l.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                 <td className="p-3">
                   <input
                     type="checkbox"
                     checked={selected.has(l.id)}
                     onChange={() => toggleOne(l.id)}
-                    className="rounded border-gray-300"
+                    className="rounded border-slate-300"
                   />
                 </td>
                 <td className="p-3">
-                  <p className="font-medium text-gray-900">{l.name}</p>
-                  <p className="text-xs text-gray-400">{l.company ?? '—'}</p>
+                  <p className="font-medium text-slate-900">{l.name}</p>
+                  <p className="text-xs text-slate-400">{l.company ?? '—'}</p>
                 </td>
                 <td className="p-3">
-                  <p className="text-gray-700">{l.phone}</p>
-                  <p className="text-xs text-gray-400">{l.email}</p>
+                  <p className="text-slate-700">{l.phone}</p>
+                  <p className="text-xs text-slate-400">{l.email}</p>
                 </td>
                 <td className="p-3">
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${sourceBadge[l.source]}`}>
@@ -104,34 +104,34 @@ export default function LeadTable({
                       {prediction.label}
                     </span>
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                      <div className="bg-gray-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
+                      <div className="bg-slate-900 text-white text-[11px] rounded-lg px-2.5 py-1.5 whitespace-nowrap shadow-lg">
                         {prediction.tip}
-                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
                       </div>
                     </div>
                   </div>
                 </td>
                 <td className="p-3">
-                  <p className="text-gray-700">{l.lastContact}</p>
-                  <p className="text-xs text-gray-400">{days === 0 ? 'Today' : `${days}d ago`}</p>
+                  <p className="text-slate-700">{l.lastContact}</p>
+                  <p className="text-xs text-slate-400">{days === 0 ? 'Today' : `${days}d ago`}</p>
                 </td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => setViewId(l.id)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-blue-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-blue-600 transition-colors"
                     >
                       <Eye size={16} />
                     </button>
                     <button
                       onClick={() => openEdit(l)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-amber-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-amber-600 transition-colors"
                     >
                       <Pencil size={16} />
                     </button>
                     <button
                       onClick={() => setDeleteId(l.id)}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-red-600 transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-red-600 transition-colors"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -142,7 +142,7 @@ export default function LeadTable({
           })}
           {paged.length === 0 && (
             <tr>
-              <td colSpan={9} className="p-8 text-center text-gray-400">
+              <td colSpan={9} className="p-8 text-center text-slate-400">
                 No leads found.
               </td>
             </tr>
@@ -151,25 +151,25 @@ export default function LeadTable({
       </table>
 
       {/* PAGINATION */}
-      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
-        <span className="text-xs text-gray-500">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+        <span className="text-xs text-slate-500">
           Showing {Math.min((page - 1) * PER_PAGE + 1, filteredLength)}–{Math.min(page * PER_PAGE, filteredLength)} of {filteredLength}
         </span>
         <div className="flex items-center gap-1">
           <button
             disabled={page === 1}
             onClick={() => setPage((p) => p - 1)}
-            className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
           >
             <ChevronLeft size={16} />
           </button>
-          <span className="text-xs font-medium text-gray-600 px-2">
+          <span className="text-xs font-medium text-slate-600 px-2">
             {page} / {totalPages}
           </span>
           <button
             disabled={page === totalPages}
             onClick={() => setPage((p) => p + 1)}
-            className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition-colors"
           >
             <ChevronRight size={16} />
           </button>

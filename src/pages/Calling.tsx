@@ -85,7 +85,7 @@ export default function Calling() {
   }
 
   return (
-    <div className="space-y-6 relative">
+    <div className="page-stack relative">
       {notice && (
         <div className="absolute top-0 right-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-medium text-blue-700 flex items-center justify-between gap-4 z-50">
           <span>{notice}</span>
@@ -100,9 +100,9 @@ export default function Calling() {
             <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
               <Phone className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Calling Center</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Calling Center</h1>
           </div>
-          <p className="text-gray-500 text-sm">VoIP & GSM calling with AI transcription & analytics</p>
+          <p className="text-slate-500 text-sm">VoIP & GSM calling with AI transcription & analytics</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-lg px-3 py-1.5">
@@ -113,7 +113,7 @@ export default function Calling() {
             <div className="w-2 h-2 bg-blue-500 rounded-full" />
             <span className="text-blue-700 text-sm font-medium">GSM Gateway</span>
           </div>
-          <button onClick={handleExportLogs} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm hover:bg-gray-900 transition-colors">
+          <button onClick={handleExportLogs} className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg text-sm hover:bg-slate-900 transition-colors">
             <Download className="w-4 h-4" />
             Export Logs
           </button>
@@ -128,11 +128,11 @@ export default function Calling() {
           { label: 'Answer Rate',        value: '78%',  Icon: PhoneCall, bg: 'bg-amber-50',  ic: 'text-amber-600',  sub: '18 of 24 answered' },
           { label: 'AI Transcribed',     value: '22',   Icon: Sparkles,  bg: 'bg-purple-50', ic: 'text-purple-600', sub: '91% success rate' },
         ]).map((c) => (
-          <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex flex-col gap-2">
+          <div key={c.label} className="bg-white rounded-xl p-4 shadow-sm border border-slate-100 flex flex-col gap-2">
             <div className="flex justify-between items-start">
               <div className="flex flex-col">
-                <span className="text-3xl font-bold text-gray-900">{c.value}</span>
-                <span className="text-sm text-gray-500 mt-0.5">{c.label}</span>
+                <span className="text-3xl font-bold text-slate-900">{c.value}</span>
+                <span className="text-sm text-slate-500 mt-0.5">{c.label}</span>
               </div>
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${c.bg}`}>
                 <c.Icon className={`w-5 h-5 ${c.ic}`} />

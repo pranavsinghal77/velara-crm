@@ -1,125 +1,196 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Building2, Clock, Copy, Info, Key, Share2, Zap } from 'lucide-react';
+import { ApiError, api } from '../../lib/api';
+import PlatformConnections from '../../components/social/PlatformConnections';
 
-import { Shield, Users, Building2, Zap, Copy, Mail, Phone, TrendingDown, Key, EyeOff, Eye, RefreshCw } from 'lucide-react';
+/**
+ * Integrations.
+ *
+ * The previous version of this screen was the least truthful thing in the app:
+ * it hardcoded `connected: true` for seven services wired to nothing (complete
+ * with a green dot), its Connect and Disconnect buttons only flipped local
+ * state that reset on refresh, and it displayed an invented API key
+ * (`vk_live_a7b3…`) and webhook URL as if they were the tenant's real
+ * credentials.
+ *
+ * Social channels now come from real OAuth grants, the API-key section reads
+ * the actual key manager, and integrations that genuinely have no backend say
+ * so instead of claiming to be live.
+ */
 
-const INTEGRATIONS = [
-  { name: 'WhatsApp Business API', desc: 'Send messages and receive leads from WhatsApp',    icon: Mail,           bg: 'bg-green-500',   connected: true  },
-  { name: 'JustDial',              desc: 'Auto-import leads from JustDial listings',          icon: Zap,           bg: 'bg-orange-500',  connected: true  },
-  { name: 'IndiaMART',             desc: 'Sync buyer enquiries from IndiaMART',               icon: Building2,     bg: 'bg-blue-600',    connected: true  },
-  { name: 'Gmail / Google Workspace', desc: 'Sync emails and calendar with CRM',              icon: Mail,          bg: 'bg-red-500',     connected: true  },
-  { name: 'Razorpay',              desc: 'Send payment links and track collections',           icon: Key,           bg: 'bg-blue-700',    connected: false },
-  { name: 'Supabase Database',     desc: 'Connected database for data storage',               icon: Shield,        bg: 'bg-emerald-600', connected: true  },
-  { name: 'AWS S3 / Cloud Storage',desc: 'Document and recording storage',                    icon: Copy,          bg: 'bg-amber-500',   connected: false },
-  { name: 'Twilio (VoIP)',         desc: 'Power VoIP calling and SMS',                        icon: Phone,         bg: 'bg-red-600',     connected: true  },
-  { name: 'Meta Business',         desc: 'Social media posting and lead ads',                 icon: Users,         bg: 'bg-blue-500',    connected: true  },
-  { name: 'LinkedIn',              desc: 'Professional network integration',                  icon: Users,         bg: 'bg-blue-700',    connected: false },
-  { name: 'Zapier',                desc: 'Connect 5000+ apps via automation',                 icon: Zap,           bg: 'bg-orange-500',  connected: false },
-  { name: 'Google Analytics',      desc: 'Track CRM usage and conversions',                   icon: TrendingDown,  bg: 'bg-amber-500',   connected: false },
-];
+interface ConnectivityOverview {
+  apiKeys: number;
+  mcpConnections: number;
+  webhooks: number;
+  endpoints: { rest: string; mcp: string };
+}
+
+/** Integrations with no implementation behind them, stated as such. */
+const PLANNED = [
+  { name: 'JustDial', desc: 'Auto-import leads from JustDial listings', icon: Zap },
+  { name: 'IndiaMART', desc: 'Sync buyer enquiries from IndiaMART', icon: Building2 },
+  { name: 'Razorpay', desc: 'Send payment links and track collections', icon: Key },
+  { name: 'Tally / TallyPrime', desc: 'Two-way sync of invoices and ledgers', icon: Building2 },
+] as const;
 
 export default function IntegrationsTab() {
-  const [integrations, setIntegrations] = useState(INTEGRATIONS.map((ig) => ({ ...ig })));
-  function toggleIntegration(name: string) {
-    setIntegrations((prev) => prev.map((ig) => ig.name === name ? { ...ig, connected: !ig.connected } : ig));
+  const [overview, setOverview] = useState<ConnectivityOverview | null>(null);
+  const [overviewError, setOverviewError] = useState('');
+  const [copied, setCopied] = useState('');
+
+  useEffect(() => {
+    let ignore = false;
+
+    api
+      .get<ConnectivityOverview>('/connectivity/overview')
+      .then((res) => {
+        if (!ignore) setOverview(res);
+      })
+      .catch((err) => {
+        if (!ignore) {
+          setOverviewError(
+            err instanceof ApiError ? err.message : 'Could not load connectivity settings.'
+          );
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  function copy(label: string, value: string) {
+    void navigator.clipboard.writeText(value);
+    setCopied(label);
+    setTimeout(() => setCopied(''), 2000);
   }
 
-  // api key
-  const [showApiKey, setShowApiKey] = useState(false);
-  const API_KEY = 'vk_live_a7b3c9d1e4f2g8h6i5j0k';
-  const WEBHOOK_URL = 'https://api.velara.in/webhooks/v1/inbound/abc123';
+  const apiBase = import.meta.env.VITE_API_URL ?? '';
+  const mcpUrl = apiBase ? `${apiBase.replace(/\/+$/, '')}/mcp` : '/api/mcp';
 
   return (
     <>
       {/* Banner */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-5 text-white">
-        <h2 className="font-bold text-base mb-1">Connect Your Tools</h2>
-        <p className="text-blue-200 text-sm">Integrate Velara CRM with your existing business tools and platforms</p>
+        <h2 className="font-bold text-base mb-1">Connect your channels</h2>
+        <p className="text-blue-100 text-sm">
+          Link the accounts Velara publishes to and the systems it exchanges data with.
+        </p>
       </div>
 
-      {/* Integration cards */}
-      <div className="grid grid-cols-1 gap-4">
-        {integrations.map((ig) => (
-          <div key={ig.name} className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-xl ${ig.bg} flex items-center justify-center text-white shrink-0`}>
-                <ig.icon className="w-6 h-6" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="font-semibold text-gray-900 text-sm">{ig.name}</span>
-                <span className="text-xs text-gray-500">{ig.desc}</span>
-                {ig.connected ? (
-                  <span className="flex items-center gap-1 text-xs text-green-600">
-                    <span className="w-2 h-2 bg-green-500 rounded-full" />
-                    Connected
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-400">Not connected</span>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-2 shrink-0">
-              {ig.connected ? (
-                <>
-                  <button className="px-3 py-1.5 text-xs font-medium border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-gray-700">Configure</button>
-                  <button onClick={() => toggleIntegration(ig.name)} className="px-3 py-1.5 text-xs font-medium border border-red-200 rounded-lg hover:bg-red-50 text-red-600 transition-colors">Disconnect</button>
-                </>
-              ) : (
-                <button onClick={() => toggleIntegration(ig.name)} className="px-4 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">Connect</button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* API Keys */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Key className="w-4 h-4 text-blue-600" />
-          <h2 className="text-base font-semibold text-gray-900">API Keys & Webhooks</h2>
+      {/* ── Social channels (real OAuth) ── */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Share2 className="w-4 h-4 text-pink-600" />
+          <h2 className="text-base font-semibold text-slate-900">Social channels</h2>
         </div>
-        <div className="flex flex-col gap-4">
-          {/* API Key */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-2">Your Velara API Key</label>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                <input
-                  type={showApiKey ? 'text' : 'password'}
-                  value={API_KEY}
-                  readOnly
-                  className="flex-1 bg-transparent text-sm font-mono outline-none text-gray-600"
-                />
-                <button onClick={() => setShowApiKey((v) => !v)} className="text-gray-400 hover:text-gray-600">
-                  {showApiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+        <p className="text-xs text-slate-500 mb-5">
+          Each connection is a real OAuth grant on the platform. Tokens are stored encrypted and
+          used only when you publish.
+        </p>
+
+        <PlatformConnections />
+      </div>
+
+      {/* ── API access (real keys) ── */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Key className="w-4 h-4 text-blue-600" />
+          <h2 className="text-base font-semibold text-slate-900">API &amp; MCP access</h2>
+        </div>
+        <p className="text-xs text-slate-500 mb-5">
+          Keys are generated on demand and shown once. Velara stores only a hash, so a key cannot
+          be recovered later — issue a new one instead.
+        </p>
+
+        {overviewError ? (
+          <p className="text-xs text-red-600">{overviewError}</p>
+        ) : !overview ? (
+          <p className="text-xs text-slate-400">Loading…</p>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: 'Active API keys', value: overview.apiKeys },
+                { label: 'MCP connections', value: overview.mcpConnections },
+                { label: 'Outbound webhooks', value: overview.webhooks },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="border border-slate-200 rounded-lg px-4 py-3 bg-slate-50/60"
+                >
+                  <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+                  <p className="text-[11px] text-slate-500">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-2">
+                MCP endpoint — point an AI client at this with an API key
+              </label>
+              <div className="flex gap-3 flex-wrap">
+                <div className="flex-1 min-w-[240px] bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                  <code className="text-sm font-mono text-slate-600 break-all">{mcpUrl}</code>
+                </div>
+                <button
+                  onClick={() => copy('mcp', mcpUrl)}
+                  className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors shrink-0"
+                >
+                  <Copy className="w-4 h-4" />
+                  {copied === 'mcp' ? 'Copied' : 'Copy'}
                 </button>
               </div>
-              <button onClick={() => void navigator.clipboard.writeText(API_KEY)} className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                <Copy className="w-4 h-4" /> Copy
-              </button>
-              <button className="flex items-center gap-2 px-3 py-3 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                <RefreshCw className="w-4 h-4" />
-              </button>
+              <p className="text-[11px] text-slate-400 mt-2">
+                Authenticate with <code className="bg-slate-100 px-1 rounded">X-API-Key</code> or{' '}
+                <code className="bg-slate-100 px-1 rounded">Authorization: Bearer</code>. Six CRM
+                tools are exposed; POST{' '}
+                <code className="bg-slate-100 px-1 rounded">
+                  {'{"jsonrpc":"2.0","id":1,"method":"tools/list"}'}
+                </code>{' '}
+                to enumerate them.
+              </p>
             </div>
-          </div>
 
-          {/* Webhook URL */}
-          <div>
-            <label className="text-xs font-semibold text-gray-600 block mb-2">Webhook Endpoint</label>
-            <div className="flex gap-3">
-              <div className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-                <input
-                  type="text"
-                  value={WEBHOOK_URL}
-                  readOnly
-                  className="w-full bg-transparent text-sm font-mono outline-none text-gray-600"
-                />
-              </div>
-              <button onClick={() => void navigator.clipboard.writeText(WEBHOOK_URL)} className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                <Copy className="w-4 h-4" /> Copy
-              </button>
-            </div>
+            <p className="text-[11px] text-slate-500 flex items-start gap-1.5">
+              <Info className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+              Creating and revoking keys, MCP connections and webhooks is available on the
+              connectivity API (<code className="bg-slate-100 px-1 rounded">/api/connectivity</code>
+              ). A management screen for it is not built yet.
+            </p>
           </div>
+        )}
+      </div>
+
+      {/* ── Not yet available, stated plainly ── */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Clock className="w-4 h-4 text-slate-400" />
+          <h2 className="text-base font-semibold text-slate-900">Not yet available</h2>
         </div>
+        <p className="text-xs text-slate-500 mb-4">
+          These have no implementation behind them yet. They are listed so you know what is planned,
+          not offered as working connections.
+        </p>
+
+        <ul className="divide-y divide-slate-50">
+          {PLANNED.map((item) => (
+            <li key={item.name} className="py-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+                  <item.icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-slate-700">{item.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{item.desc}</p>
+                </div>
+              </div>
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                planned
+              </span>
+            </li>
+          ))}
+        </ul>
       </div>
     </>
   );

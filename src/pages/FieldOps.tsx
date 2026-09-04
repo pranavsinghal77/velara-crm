@@ -1,23 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Camera,
-  MapPin,
-  CheckCircle,
-  Clock,
-  AlertTriangle,
-  Play,
-  Calendar,
-  Laptop,
-  Home,
-  Briefcase,
-  FileText,
-  Coffee,
-  Check,
-  ChevronRight,
-  TrendingUp,
-  ShieldCheck,
-  Building,
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Camera, MapPin, CheckCircle, Clock, AlertTriangle, Laptop, Home, Briefcase, FileText, Coffee } from 'lucide-react';
 import TaskUploader from './field-ops/TaskUploader';
 
 // Mock Data
@@ -49,8 +31,8 @@ const MONTHS = ['AUG', 'JUL', 'JUN', 'MAY', 'APR', 'MAR', 'FEB'];
 export default function FieldOps() {
   const [activeTab, setActiveTab] = useState<'Attendance' | 'Tasks' | 'Campaigns'>('Attendance');
   const [selectedTask, setSelectedTask] = useState<string | null>(null);
+  const [complianceNotice, setComplianceNotice] = useState('');
   const [clockedIn, setClockedIn] = useState(true);
-  const [clockInTime, setClockInTime] = useState('09:58 AM');
   const [activeMonth, setActiveMonth] = useState('AUG');
   const [is24Hour, setIs24Hour] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -82,7 +64,24 @@ export default function FieldOps() {
   const pendingTasks = mockTasks.filter((t) => t.status === 'Pending').length;
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="page-stack">
+      {/* Verdict from the last visual compliance check. Only ever set from a
+          real analysis result, so a failed AI call shows nothing here. */}
+      {complianceNotice && (
+        <div
+          role="status"
+          className="flex items-start gap-2 p-3 bg-blue-50 border border-blue-200 rounded-xl"
+        >
+          <span className="text-sm text-blue-800 flex-1">{complianceNotice}</span>
+          <button
+            onClick={() => setComplianceNotice('')}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ═══ KEKA-STYLE SUB-NAV HEADER ════════════════════════ */}
       <div className="bg-slate-900 text-white rounded-2xl p-4 border border-slate-800 shadow-xl flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
@@ -330,17 +329,17 @@ export default function FieldOps() {
             >
               <div>
                 <div className="flex justify-between items-start mb-3">
-                  <h3 className="font-bold text-sm text-gray-900">{task.title}</h3>
+                  <h3 className="font-bold text-sm text-slate-900">{task.title}</h3>
                   {task.status === 'Completed' && <CheckCircle size={18} className="text-emerald-500" />}
                   {task.status === 'Pending' && <Clock size={18} className="text-amber-500" />}
                   {task.status === 'Failed' && <AlertTriangle size={18} className="text-red-500" />}
                 </div>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mb-4">
+                <p className="text-xs text-slate-500 flex items-center gap-1 mb-4">
                   <MapPin size={13} className="text-blue-600" /> {task.location}
                 </p>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+              <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
                 {task.status === 'Pending' ? (
                   <button
                     onClick={() => setSelectedTask(task.id)}
@@ -350,7 +349,7 @@ export default function FieldOps() {
                   </button>
                 ) : (
                   <div className="w-full flex items-center justify-between text-xs">
-                    <span className="font-semibold text-gray-500">Gemini Visual Compliance:</span>
+                    <span className="font-semibold text-slate-500">Gemini Visual Compliance:</span>
                     <span
                       className={`font-bold font-mono px-2 py-0.5 rounded-md ${
                         task.compliance && task.compliance > 80
@@ -374,21 +373,21 @@ export default function FieldOps() {
           {mockCampaigns.map((camp) => (
             <div key={camp.id} className="bg-white rounded-2xl shadow-2xs border border-slate-200 p-6 space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="font-bold text-base text-gray-900">{camp.name}</h3>
+                <h3 className="font-bold text-base text-slate-900">{camp.name}</h3>
                 <span className="text-xs font-bold px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
                   {camp.status}
                 </span>
               </div>
-              <p className="text-xs text-gray-500 flex items-center gap-1.5 font-medium">
+              <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
                 <MapPin size={14} className="text-blue-600" /> {camp.location}
               </p>
 
               <div>
-                <div className="flex justify-between text-xs font-semibold mb-1 text-gray-600">
+                <div className="flex justify-between text-xs font-semibold mb-1 text-slate-600">
                   <span>Campaign Store Coverage</span>
                   <span className="font-bold font-mono">{camp.progress}%</span>
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-600 rounded-full" style={{ width: `${camp.progress}%` }} />
                 </div>
               </div>
@@ -402,8 +401,12 @@ export default function FieldOps() {
         <TaskUploader
           taskId={selectedTask}
           onClose={() => setSelectedTask(null)}
-          onSuccess={() => {
-            setSelectedTask(null);
+          onSuccess={(result) => {
+            setComplianceNotice(
+              result.passed
+                ? `Verified: ${result.feedback}`
+                : `Rejected: ${result.feedback}`
+            );
           }}
         />
       )}

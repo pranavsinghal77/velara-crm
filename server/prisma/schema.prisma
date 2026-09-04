@@ -1,5 +1,13 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Velara CRM - data model
+//
+// Design notes:
+//  * Every tenant-owned row carries `orgId`. All queries are scoped by it via
+//    the request's authenticated org; there is no code path that reads across
+//    organisations.
+//  * Dates are real `DateTime` columns (not strings) so they can be indexed,
+//    sorted and range-queried. The API layer serialises them into the
+//    `YYYY-MM-DD` / `HH:mm` shape the UI expects.
+//  * Passwords are never stored, only a bcrypt hash of them.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,124 +17,851 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String   @default("password123")
-  avatar    String?
-  role      String   @default("Sales")
-  status    String   @default("Offline")
-  isActive  Boolean  @default(true)
-  permissions String[] @default([])
-  
-  // Relations
-  leads     Lead[]
-  messages  Message[]
-  reminders Reminder[]
-  notifications Notification[]
-  fieldTasks FieldTask[]
+// --- Enums ------------------------------------------------------------------
+
+enum Role {
+  Admin
+  Manager
+  Sales
+  Viewer
 }
 
+enum LeadStatus {
+  New
+  Contacted
+  Qualified
+  Negotiation
+  Won
+  Lost
+}
+
+enum Priority {
+  High
+  Medium
+  Low
+}
+
+enum MessageDirection {
+  sent
+  received
+}
+
+/// Commercial tier. Limits per tier live in src/billing/plans.ts so they can be
+/// tuned without a migration; per-tenant exceptions go in Subscription.limitOverrides.
+enum PlanTier {
+  Trial
+  Business
+  Enterprise
+}
+
+enum SubscriptionStatus {
+  Trialing
+  Active
+  PastDue
+  Canceled
+  Suspended
+}
+
+/// Metered activity. Written append-only to UsageEvent and rolled up into
+/// UsageCounter for limit checks and billing.
+enum UsageKind {
+  ai_request
+  api_request
+  lead_created
+  message_sent
+  document_stored
+  workflow_run
+  seat_active
+}
+
+enum AttendanceMode {
+  Office
+  Remote
+  OnDuty
+  Leave
+}
+
+enum WorkflowTrigger {
+  lead_created
+  lead_status_changed
+  message_received
+  reminder_overdue
+  schedule
+}
+
+enum RunStatus {
+  Pending
+  Running
+  Succeeded
+  Failed
+  Skipped
+}
+
+enum McpTransport {
+  http
+  sse
+}
+
+enum ConnectionStatus {
+  Unchecked
+  Healthy
+  Unreachable
+  Unauthorized
+}
+
+// --- Tenancy ----------------------------------------------------------------
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  leads         Lead[]
+  messages      Message[]
+  reminders     Reminder[]
+  notifications Notification[]
+  campaigns     FieldCampaign[]
+  fieldTasks    FieldTask[]
+
+  subscription         Subscription?
+  usageEvents          UsageEvent[]
+  usageCounters        UsageCounter[]
+  apiKeys              ApiKey[]
+  mcpConnections       McpConnection[]
+  aiProviderConfig     AiProviderConfig?
+  webhooks             WebhookEndpoint[]
+  attendance           AttendanceRecord[]
+  documents            Document[]
+  workflows            Workflow[]
+  socialConnections    SocialConnection[]
+  socialPosts          SocialPost[]
+  socialPostMetrics    SocialPostMetric[]
+  socialAccountMetrics SocialAccountMetric[]
+}
+
+// --- Identity ---------------------------------------------------------------
+
+model User {
+  id              String    @id @default(uuid())
+  orgId           String
+  name            String
+  email           String    @unique
+  passwordHash    String
+  avatar          String?
+  role            Role      @default(Sales)
+  isActive        Boolean   @default(true)
+  permissions     String[]  @default([])
+  /// Grants access to the cross-tenant platform console. Deliberately separate
+  /// from `role`, which is scoped to one organisation: a tenant Admin must not
+  /// be able to escalate into seeing other customers. Set only by
+  /// `npm run platform:grant`, never through the app.
+  isPlatformAdmin Boolean   @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  org           Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  ownedLeads    Lead[]
+  messages      Message[]
+  reminders     Reminder[]
+  notifications Notification[]
+  fieldTasks    FieldTask[]
+  refreshTokens RefreshToken[]
+  attendance    AttendanceRecord[]
+
+  @@index([orgId])
+  @@index([orgId, isActive])
+  @@index([isPlatformAdmin])
+}
+
+/// Refresh tokens are stored as SHA-256 hashes so a database leak cannot be
+/// replayed as a live session. Rotation revokes the previous row.
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// --- CRM core ---------------------------------------------------------------
+
 model Lead {
-  id          String   @id @default(uuid())
-  name        String
-  phone       String   @default("")
-  email       String
-  source      String   @default("Website")
-  status      String   @default("New")
-  aiScore     Int      @default(50)
+  id               String     @id @default(uuid())
+  orgId            String
+  name             String
+  phone            String     @default("")
+  email            String
+  source           String     @default("Website")
+  status           LeadStatus @default(New)
+  aiScore          Int        @default(50)
   aiScoreBreakdown Json?
-  lastContact String   @default("")
-  isHot       Boolean  @default(false)
-  tags        String[] @default([])
-  notes       String   @default("")
-  assignedTo  String   @default("")
-  createdAt   String   @default("")
-  company     String?
-  designation String?
-  city        String?
-  budget      String?
-  
-  // Legacy fields for backward compat
-  value       Float    @default(0)
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  isHot            Boolean    @default(false)
+  tags             String[]   @default([])
+  notes            String     @default("")
+  company          String?
+  designation      String?
+  city             String?
+  /// Free-text budget as entered by sales, e.g. "3.5L".
+  budget           String?
+  /// Normalised budget in INR lakhs, derived from `budget` on write so the
+  /// database can aggregate pipeline value without parsing strings.
+  budgetLakhs      Float      @default(0)
+  lastContactAt    DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  reminders Reminder[]
+
+  @@index([orgId, status])
+  @@index([orgId, createdAt])
+  @@index([orgId, isHot])
+  @@index([orgId, ownerId])
+  @@index([orgId, email])
 }
 
 model Message {
-  id          String   @id @default(uuid())
-  leadId      String   @default("")
-  content     String
-  sender      String
-  timestamp   DateTime @default(now())
-  isRead      Boolean  @default(false)
-  isAISuggested Boolean @default(false)
-  isInternal  Boolean  @default(false)
-  
-  // Omnichannel
-  channel     String   @default("Email")
-  intent      String?
-  urgency     String?
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  id            String           @id @default(uuid())
+  orgId         String
+  leadId        String?
+  content       String
+  direction     MessageDirection
+  sentAt        DateTime         @default(now())
+  isRead        Boolean          @default(false)
+  isAISuggested Boolean          @default(false)
+  isInternal    Boolean          @default(false)
+  channel       String           @default("Email")
+  intent        String?
+  urgency       String?
+  createdAt     DateTime         @default(now())
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead Lead?        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, sentAt])
+  @@index([orgId, leadId, sentAt])
+  @@index([orgId, isRead])
 }
 
 model Reminder {
-  id          String   @id @default(uuid())
-  leadId      String   @default("")
-  leadName    String   @default("")
-  task        String   @default("")
-  dueDate     String   @default("")
-  dueTime     String   @default("")
-  isToday     Boolean  @default(false)
-  isTomorrow  Boolean  @default(false)
-  isCompleted Boolean  @default(false)
-  priority    String   @default("Medium")
-  type        String   @default("Manual")
-  
-  userId      String?
-  user        User?    @relation(fields: [userId], references: [id])
+  id          String    @id @default(uuid())
+  orgId       String
+  leadId      String?
+  /// Denormalised for display; kept in sync when a lead is renamed.
+  leadName    String    @default("")
+  task        String
+  /// Single source of truth for scheduling. `isToday` / `isTomorrow` are
+  /// computed at read time from this instant, never stored, so they cannot
+  /// go stale overnight.
+  dueAt       DateTime
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  priority    Priority  @default(Medium)
+  type        String    @default("Manual")
+  notes       String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId String?
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  lead Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, dueAt])
+  @@index([orgId, isCompleted, dueAt])
+  @@index([orgId, ownerId])
 }
 
 model Notification {
   id        String   @id @default(uuid())
+  orgId     String
   title     String
   message   String
   type      String
-  timestamp DateTime @default(now())
   isRead    Boolean  @default(false)
-  
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  /// Null means broadcast to the whole organisation.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, createdAt])
+  @@index([orgId, userId, isRead])
 }
+
+// --- Field operations -------------------------------------------------------
 
 model FieldCampaign {
   id          String   @id @default(uuid())
+  orgId       String
   name        String
   description String?
   startDate   DateTime @default(now())
   endDate     DateTime
   budget      Float    @default(0)
   status      String   @default("Active")
-  
-  tasks       FieldTask[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  org   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tasks FieldTask[]
+
+  @@index([orgId, startDate])
 }
 
 model FieldTask {
-  id              String   @id @default(uuid())
-  title           String
-  location        String
-  status          String   @default("Pending")
-  uploadedImageUrl String?
+  id                String   @id @default(uuid())
+  orgId             String
+  campaignId        String
+  title             String
+  location          String
+  status            String   @default("Pending")
+  uploadedImageUrl  String?
   aiComplianceScore Float?
-  aiFeedback      String?
-  
-  campaignId      String
-  campaign        FieldCampaign @relation(fields: [campaignId], references: [id])
-  
-  assignedToId    String?
-  assignedTo      User?         @relation(fields: [assignedToId], references: [id])
+  aiFeedback        String?
+  /// False when a compliance verdict could not actually be computed (e.g. the
+  /// AI provider was unavailable), so the UI never shows an unverified task
+  /// as passing.
+  aiVerified        Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  org      Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  campaign FieldCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, campaignId])
+  @@index([orgId, assignedToId])
+}
+
+// --- Commercial: subscription, metering, billing -----------------------------
+
+/// One row per tenant. Kept separate from Organization so billing state can be
+/// replaced (moving providers, re-plumbing Stripe) without touching identity.
+model Subscription {
+  id                 String             @id @default(uuid())
+  orgId              String             @unique
+  tier               PlanTier           @default(Trial)
+  status             SubscriptionStatus @default(Trialing)
+  /// Per-tenant limit exceptions, e.g. {"ai_request": 50000}. Null means the
+  /// plan defaults in src/billing/plans.ts apply.
+  limitOverrides     Json?
+  /// When true, metered usage past the plan limit is allowed and billed as
+  /// overage rather than rejected with 402.
+  allowOverage       Boolean            @default(false)
+  seats              Int                @default(5)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  canceledAt         DateTime?
+
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  invoices Invoice[]
+
+  @@index([status])
+  @@index([tier])
+  @@index([currentPeriodEnd])
+}
+
+/// Append-only metering log: the source of truth for what a tenant did.
+/// UsageCounter is a derived rollup and can be rebuilt from this.
+model UsageEvent {
+  id         String    @id @default(uuid())
+  orgId      String
+  kind       UsageKind
+  quantity   Int       @default(1)
+  /// Cost in paise for events with a direct cost, such as an AI call. Null
+  /// when the event is only counted.
+  costPaise  Int?
+  /// Context: model name, endpoint, token counts, api key id.
+  metadata   Json?
+  occurredAt DateTime  @default(now())
+
+  userId   String?
+  apiKeyId String?
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, kind, occurredAt])
+  @@index([orgId, occurredAt])
+  @@index([occurredAt])
+}
+
+/// Rollup per tenant / period / kind, incremented alongside the event so a
+/// limit check is one indexed read instead of an aggregate over the event log.
+model UsageCounter {
+  id          String    @id @default(uuid())
+  orgId       String
+  kind        UsageKind
+  periodStart DateTime
+  periodEnd   DateTime
+  quantity    Int       @default(0)
+  costPaise   Int       @default(0)
+  updatedAt   DateTime  @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, kind, periodStart])
+  @@index([orgId, periodStart])
+}
+
+model Invoice {
+  id              String    @id @default(uuid())
+  subscriptionId  String
+  orgId           String
+  periodStart     DateTime
+  periodEnd       DateTime
+  subtotalPaise   Int       @default(0)
+  overagePaise    Int       @default(0)
+  totalPaise      Int       @default(0)
+  currency        String    @default("INR")
+  status          String    @default("draft")
+  /// Snapshot of the metered lines this invoice was built from.
+  lineItems       Json?
+  stripeInvoiceId String?   @unique
+  issuedAt        DateTime?
+  paidAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, periodStart])
+  @@index([status])
+}
+
+/// Provider webhook deliveries, recorded before processing so a retried event
+/// is applied at most once.
+model WebhookEvent {
+  id          String    @id @default(uuid())
+  provider    String    @default("stripe")
+  externalId  String
+  type        String
+  payload     Json
+  processedAt DateTime?
+  error       String?
+  receivedAt  DateTime  @default(now())
+
+  @@unique([provider, externalId])
+  @@index([processedAt])
+}
+
+// --- Connectivity: API keys, MCP, AI providers, webhooks ---------------------
+
+/// Programmatic access. Only a hash is stored; the plaintext key is shown once
+/// at creation. `prefix` is the non-secret head used to identify a key in logs
+/// and in the UI without revealing it.
+model ApiKey {
+  id          String    @id @default(uuid())
+  orgId       String
+  name        String
+  prefix      String    @unique
+  keyHash     String    @unique
+  /// Granted scopes, e.g. ["leads:read", "leads:write"].
+  scopes      String[]  @default([])
+  lastUsedAt  DateTime?
+  lastUsedIp  String?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, revokedAt])
+}
+
+/// An outbound MCP server a tenant has connected, so their AI tooling can
+/// reach systems the CRM does not integrate with natively. Credentials are
+/// stored AES-256-GCM encrypted, never in plaintext.
+model McpConnection {
+  id               String           @id @default(uuid())
+  orgId            String
+  name             String
+  transport        McpTransport     @default(http)
+  url              String
+  /// Encrypted bearer token or header value. Null for open servers.
+  credentialEnc    String?
+  /// Header the credential travels in.
+  credentialHeader String           @default("Authorization")
+  enabled          Boolean          @default(true)
+  status           ConnectionStatus @default(Unchecked)
+  statusDetail     String?
+  /// Tool names seen on the last successful handshake.
+  discoveredTools  String[]         @default([])
+  lastCheckedAt    DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, name])
+  @@index([orgId, enabled])
+}
+
+/// Bring-your-own AI credentials per tenant. When absent the platform key is
+/// used, and that usage is metered against the plan.
+model AiProviderConfig {
+  id                 String   @id @default(uuid())
+  orgId              String   @unique
+  provider           String   @default("gemini")
+  apiKeyEnc          String?
+  model              String   @default("gemini-3.1-flash-lite")
+  visionModel        String   @default("gemini-3.1-flash-lite")
+  enabled            Boolean  @default(true)
+  /// Monthly ceiling in paise for tenant-funded spend; null means unlimited.
+  monthlyBudgetPaise Int?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+/// Outbound webhooks so tenants can push CRM events into their own systems.
+model WebhookEndpoint {
+  id            String    @id @default(uuid())
+  orgId         String
+  url           String
+  /// Event names to deliver, e.g. ["lead.created", "lead.status_changed"].
+  events        String[]  @default([])
+  /// Encrypted signing secret; every delivery carries an HMAC of the body.
+  secretEnc     String
+  enabled       Boolean   @default(true)
+  failureCount  Int       @default(0)
+  lastAttemptAt DateTime?
+  lastStatus    Int?
+  createdAt     DateTime  @default(now())
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, enabled])
+}
+
+// --- Feature backends: attendance, documents, workflows ----------------------
+
+/// One row per user per day. Clock-in/out and working mode are recorded here
+/// rather than held in component state.
+model AttendanceRecord {
+  id            String         @id @default(uuid())
+  orgId         String
+  userId        String
+  /// The local calendar day in the org timezone, stored as that day's midnight
+  /// so a day can be found by equality.
+  day           DateTime
+  mode          AttendanceMode @default(Office)
+  clockInAt     DateTime?
+  clockOutAt    DateTime?
+  /// Worked minutes, recomputed on clock-out.
+  workedMinutes Int            @default(0)
+  clockInLat    Float?
+  clockInLng    Float?
+  note          String         @default("")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, day])
+  @@index([orgId, day])
+  @@index([orgId, userId, day])
+}
+
+model Document {
+  id            String   @id @default(uuid())
+  orgId         String
+  name          String
+  category      String   @default("Contracts")
+  mimeType      String
+  sizeBytes     Int
+  /// Object-storage key once storage is wired; until then small files are held
+  /// inline. Exactly one of these is set.
+  storageKey    String?
+  inlineData    String?
+  /// Text pulled out of the file, for search and AI grounding.
+  extractedText String?
+  leadId        String?
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, category])
+  @@index([orgId, leadId])
+  @@index([orgId, createdAt])
+}
+
+model Workflow {
+  id          String          @id @default(uuid())
+  orgId       String
+  name        String
+  description String          @default("")
+  trigger     WorkflowTrigger
+  /// Conditions the trigger payload must satisfy, e.g. {"status": "Qualified"}.
+  conditions  Json?
+  /// Ordered actions, e.g. [{"type": "create_reminder", "offsetDays": 2}].
+  actions     Json
+  enabled     Boolean         @default(true)
+  lastRunAt   DateTime?
+  runCount    Int             @default(0)
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  org  Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  runs WorkflowRun[]
+
+  @@unique([orgId, name])
+  @@index([orgId, enabled, trigger])
+}
+
+model WorkflowRun {
+  id          String    @id @default(uuid())
+  orgId       String
+  workflowId  String
+  status      RunStatus @default(Pending)
+  /// The event that started the run.
+  triggerData Json?
+  /// Per-action outcome, for the run detail view.
+  log         Json?
+  error       String?
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, startedAt])
+  @@index([workflowId, startedAt])
+}
+
+// --- Social channels --------------------------------------------------------
+
+enum SocialPlatform {
+  instagram
+  facebook
+  linkedin
+  x
+  whatsapp
+}
+
+enum SocialConnectionStatus {
+  Connected
+  /// The access token has passed its expiry and no refresh token is stored, or
+  /// the refresh attempt failed. The tenant must reconnect.
+  Expired
+  /// The provider reported the grant as revoked (user removed the app).
+  Revoked
+  /// The last call failed for a reason other than auth.
+  Error
+}
+
+enum SocialPostStatus {
+  Draft
+  Scheduled
+  Publishing
+  Published
+  /// Published to some targets but not others; per-target detail is in results.
+  PartiallyPublished
+  Failed
+  Canceled
+}
+
+/// One connected account on one platform.
+///
+/// Tokens are AES-256-GCM encrypted, never stored in plaintext, and are only
+/// decrypted at the moment of an outbound call. A tenant may connect several
+/// accounts on the same platform (multiple Facebook pages is the common case),
+/// so uniqueness is per external account rather than per platform.
+model SocialConnection {
+  id              String                 @id @default(uuid())
+  orgId           String
+  platform        SocialPlatform
+  /// The provider's own id: Facebook page id, Instagram business account id,
+  /// LinkedIn organisation/person URN, X user id, WhatsApp phone number id.
+  externalId      String
+  /// Display handle, e.g. "@velaracrm" or the page name.
+  handle          String
+  avatarUrl       String?
+  accessTokenEnc  String
+  refreshTokenEnc String?
+  /// Null when the provider issues long-lived or non-expiring tokens.
+  expiresAt       DateTime?
+  /// Scopes the provider actually granted, which can be fewer than requested.
+  scopes          String[]               @default([])
+  status          SocialConnectionStatus @default(Connected)
+  statusDetail    String?
+  /// Preferred target when a post does not name a specific account.
+  isDefault       Boolean                @default(false)
+  lastCheckedAt   DateTime?
+  lastPublishAt   DateTime?
+  connectedById   String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  org     Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  posts   SocialPostTarget[]
+  metrics SocialAccountMetric?
+
+  @@unique([orgId, platform, externalId])
+  @@index([orgId, platform])
+  @@index([orgId, status])
+  @@index([expiresAt])
+}
+
+/// Short-lived OAuth state, so a callback can be tied back to the tenant and
+/// user who started the flow. Rows are single-use and expire quickly; without
+/// this an attacker could complete a flow into someone else's workspace.
+model SocialOAuthState {
+  id           String         @id @default(uuid())
+  state        String         @unique
+  orgId        String
+  userId       String
+  platform     SocialPlatform
+  /// PKCE verifier for providers that require it (X).
+  codeVerifier String?
+  redirectTo   String?
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@index([expiresAt])
+}
+
+/// A post the tenant composed, and its delivery outcome per target.
+model SocialPost {
+  id          String           @id @default(uuid())
+  orgId       String
+  body        String
+  /// Base64 data URL or storage key. Instagram requires media, so a post
+  /// targeting it without this is rejected before any provider call.
+  mediaUrl    String?
+  mediaMime   String?
+  status      SocialPostStatus @default(Draft)
+  /// Null for post-now; set for scheduled delivery.
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  org     Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  targets SocialPostTarget[]
+
+  @@index([orgId, status, scheduledAt])
+  @@index([orgId, createdAt])
+}
+
+/// One row per (post, connection): the unit that actually succeeds or fails.
+/// Keeping delivery per target is what lets a post be PartiallyPublished and
+/// retried only where it failed.
+model SocialPostTarget {
+  id             String           @id @default(uuid())
+  postId         String
+  connectionId   String
+  status         SocialPostStatus @default(Scheduled)
+  /// The provider's id for the created post, for deep links and analytics.
+  externalPostId String?
+  permalink      String?
+  error          String?
+  attempts       Int              @default(0)
+  publishedAt    DateTime?
+
+  post       SocialPost        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connection SocialConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  metrics    SocialPostMetric?
+
+  @@unique([postId, connectionId])
+  @@index([status])
+}
+
+/// Engagement figures for one delivered post, read back from the platform.
+///
+/// Kept out of SocialPostTarget on purpose: that row records delivery, which
+/// settles once and never changes, while these numbers keep moving for the life
+/// of the post. Mixing them would mean every metrics refresh rewrote the
+/// delivery record.
+model SocialPostMetric {
+  id       String @id @default(uuid())
+  orgId    String
+  targetId String @unique
+
+  /// Every figure is nullable, and a metric the provider did not report is
+  /// listed in `unavailable` rather than stored as 0. LinkedIn gives no
+  /// impressions without the Community Management product, and Instagram
+  /// reports no shares at all — writing a zero there would be a measurement
+  /// the CRM never took.
+  impressions    Int?
+  reach          Int?
+  likes          Int?
+  comments       Int?
+  shares         Int?
+  clicks         Int?
+  videoViews     Int?
+  /// Engagements over reach, as a fraction. Computed on write so a list query
+  /// does not have to, and null when reach is unknown or zero.
+  engagementRate Float?
+  unavailable    String[] @default([])
+
+  fetchedAt  DateTime @default(now())
+  /// Set when the last refresh failed, so the UI can show the figures it has
+  /// alongside the reason they are stale.
+  fetchError String?
+
+  target SocialPostTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  org    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fetchedAt])
+}
+
+/// Account-level figures for one connected account.
+model SocialAccountMetric {
+  id           String @id @default(uuid())
+  orgId        String
+  connectionId String @unique
+
+  followers      Int?
+  postCount      Int?
+  /// Account impressions over the provider's trailing window, where it reports
+  /// one at all.
+  impressions28d Int?
+  unavailable    String[] @default([])
+
+  fetchedAt  DateTime @default(now())
+  fetchError String?
+
+  connection SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  org        Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fetchedAt])
 }

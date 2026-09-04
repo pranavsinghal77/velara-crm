@@ -17,6 +17,7 @@ import {
   Workflow,
   Headset,
   MapPin,
+  ShieldCheck,
 } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
@@ -63,12 +64,15 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   ];
 
   const showSettings = user?.role === 'Admin' || user?.role === 'Manager';
+  // Cross-tenant console. Shown only to platform operators; the API authorises
+  // it independently, so hiding the link is convenience, not security.
+  const showPlatform = user?.isPlatformAdmin === true;
 
   const roleColor: Record<string, string> = {
     Admin: 'bg-red-500/20 text-red-400',
     Manager: 'bg-amber-500/20 text-amber-400',
     Sales: 'bg-green-500/20 text-green-400',
-    Viewer: 'bg-gray-500/20 text-gray-400',
+    Viewer: 'bg-slate-500/20 text-slate-400',
   };
 
   const initials = user?.name?.charAt(0)?.toUpperCase() ?? '?';
@@ -76,7 +80,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className="fixed left-0 top-0 h-screen z-40 bg-slate-900 flex flex-col transition-all duration-300 overflow-hidden border-r border-slate-800/50 shadow-2xl"
-      style={{ width: isCollapsed ? '64px' : '240px' }}
+      style={{ width: isCollapsed ? 'var(--sidebar-w-collapsed)' : 'var(--sidebar-w)' }}
     >
       {/* ── Top ─────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto">
@@ -104,24 +108,21 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="mt-2 flex flex-col gap-1 px-2">
+        <nav className="mt-2 flex flex-col gap-1 px-2 stagger nav-stagger">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mx-2 my-0.5 ${
+                `nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mx-2 my-0.5 ${
                   isActive
                     ? 'bg-[#2563EB] text-white'
                     : 'text-[#94A3B8] hover:bg-[#334155]'
                 }`
               }
             >
-              <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110`} />
-              <span
-                className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
-                style={{ width: isCollapsed ? '0' : 'auto', opacity: isCollapsed ? 0 : 1 }}
-              >
+              <item.icon className="nav-icon w-5 h-5 flex-shrink-0" />
+              <span className="nav-label" data-collapsed={isCollapsed || undefined}>
                 {item.label}
               </span>
               {item.badge !== undefined && item.badge > 0 && (
@@ -145,18 +146,15 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mx-2 my-0.5 ${
+                `nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mx-2 my-0.5 ${
                   isActive
                     ? 'bg-[#2563EB] text-white'
                     : 'text-[#94A3B8] hover:bg-[#334155]'
                 }`
               }
             >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              <span
-                className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
-                style={{ width: isCollapsed ? '0' : 'auto', opacity: isCollapsed ? 0 : 1 }}
-              >
+              <item.icon className="nav-icon w-5 h-5 flex-shrink-0" />
+              <span className="nav-label" data-collapsed={isCollapsed || undefined}>
                 {item.label}
               </span>
             </NavLink>
@@ -166,7 +164,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <NavLink
               to="/settings"
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mx-2 my-1 group ${
+                `nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mx-2 my-1 group ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20'
                     : 'text-slate-400 hover:bg-slate-800/80 hover:text-slate-200'
@@ -174,11 +172,26 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               }
             >
               <Settings className={`w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-45`} />
-              <span
-                className="text-sm font-medium whitespace-nowrap overflow-hidden transition-all duration-300"
-                style={{ width: isCollapsed ? '0' : 'auto', opacity: isCollapsed ? 0 : 1 }}
-              >
+              <span className="nav-label" data-collapsed={isCollapsed || undefined}>
                 Settings
+              </span>
+            </NavLink>
+          )}
+
+          {showPlatform && (
+            <NavLink
+              to="/platform"
+              className={({ isActive }) =>
+                `nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mx-2 my-1 group border ${
+                  isActive
+                    ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                    : 'border-amber-500/20 text-amber-400/80 hover:bg-amber-500/10 hover:text-amber-300'
+                }`
+              }
+            >
+              <ShieldCheck className="w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110" />
+              <span className="nav-label" data-collapsed={isCollapsed || undefined}>
+                Platform Console
               </span>
             </NavLink>
           )}

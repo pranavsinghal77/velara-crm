@@ -1,26 +1,58 @@
 import { Router } from 'express';
+import { requireAuth } from '../middlewares/auth';
+import aiRoutes from './ai.routes';
+import attendanceRoutes from './attendance.routes';
+import documentRoutes from './document.routes';
+import workflowRoutes from './workflow.routes';
+import connectivityRoutes from './connectivity.routes';
+import mcpRoutes from './mcp.routes';
+import platformRoutes from './platform.routes';
+import socialRoutes from './social.routes';
+import socialCallbackRoutes from './socialCallback.routes';
+import analyticsRoutes from './analytics.routes';
+import authRoutes from './auth.routes';
+import campaignRoutes from './campaign.routes';
 import leadRoutes from './lead.routes';
 import messageRoutes from './message.routes';
-import campaignRoutes from './campaign.routes';
-import userRoutes from './user.routes';
-import authRoutes from './auth.routes';
-import reminderRoutes from './reminder.routes';
 import notificationRoutes from './notification.routes';
-import analyticsRoutes from './analytics.routes';
-import aiRoutes from './ai';
-import seedRoutes from './seed.routes';
+import reminderRoutes from './reminder.routes';
+import userRoutes from './user.routes';
 
 const router = Router();
+
+// Auth is the only unauthenticated surface (login / refresh / logout). It
+// applies its own guards per route.
+router.use('/auth', authRoutes);
+
+// Machine-authenticated: callers present an API key rather than a session, so
+// this mounts ahead of requireAuth and does its own authentication.
+router.use('/mcp', mcpRoutes);
+
+// The social OAuth return leg. A provider redirects the user's browser here by
+// top-level navigation, with no Authorization header to send; the single-use
+// `state` issued when the flow began is what authenticates it.
+router.use('/social', socialCallbackRoutes);
+
+// Everything below this line requires a valid access token. Mounting the
+// guard once, here, means a newly added route cannot be forgotten and left
+// public, which is how the previous build shipped with every endpoint open.
+router.use(requireAuth);
 
 router.use('/leads', leadRoutes);
 router.use('/messages', messageRoutes);
 router.use('/users', userRoutes);
-router.use('/auth', authRoutes);
 router.use('/reminders', reminderRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/field-campaigns', campaignRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/ai', aiRoutes);
-router.use('/seed', seedRoutes);
+router.use('/connectivity', connectivityRoutes);
+router.use('/social', socialRoutes);
+router.use('/attendance', attendanceRoutes);
+router.use('/documents', documentRoutes);
+router.use('/workflows', workflowRoutes);
+
+// Cross-tenant operator console. Gated again inside by requirePlatformAdmin.
+router.use('/platform', platformRoutes);
 
 export default router;
