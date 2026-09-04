@@ -133,10 +133,24 @@ async function promptLine(question: string, fallback: string): Promise<string> {
 }
 
 /**
- * Tries to connect. Distinguishes "wrong password" from "wrong host", because
- * they need opposite fixes and the raw errors are easy to confuse.
+ * Three outcomes, not two, because they need three different fixes:
+ *
+ *   rejected  - the pooler found the project and refused the credential
+ *               (28P01). The host and username are right; the password is not.
+ *   no-tenant - the pooler answered but does not serve this project (XX000,
+ *               "tenant/user ... not found"). Wrong regional pooler, or wrong
+ *               project ref. The password was never even tested.
+ *   no-route  - the name did not resolve, or nothing answered.
+ *
+ * Collapsing the first two into "authentication failed" is what makes this
+ * class of problem take an afternoon: you go looking for a bad password when
+ * the password was never sent.
  */
-async function probe(url: string): Promise<{ ok: true } | { ok: false; authFailed: boolean; message: string }> {
+type ProbeResult =
+  | { ok: true }
+  | { ok: false; kind: 'rejected' | 'no-tenant' | 'no-route'; message: string };
+
+async function probe(url: string): Promise<ProbeResult> {
   const client = new Client({ connectionString: url, connectionTimeoutMillis: 12_000 });
 
   try {
@@ -144,11 +158,22 @@ async function probe(url: string): Promise<{ ok: true } | { ok: false; authFaile
     await client.query('select 1');
     return { ok: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    // Postgres 28P01 is invalid_password; the pooler surfaces it as a plain
-    // authentication failure. Either way the host was reachable.
-    const authFailed = /password|authentication|28P01|Tenant or user not found/i.test(message);
-    return { ok: false, authFailed, message };
+    const e = err as { message?: string; code?: string };
+    const message = e.message ?? String(err);
+    const code = e.code ?? '';
+
+    // 28P01 is invalid_password. Supavisor reports an unknown project as XX000
+    // with "tenant/user <user> not found" in the message.
+    const kind =
+      code === '28P01'
+        ? 'rejected'
+        : /tenant\/user .* not found|Tenant or user not found/i.test(message)
+          ? 'no-tenant'
+          : /ENOTFOUND|EAI_AGAIN|ECONNREFUSED|ETIMEDOUT|timeout/i.test(message + code)
+            ? 'no-route'
+            : 'no-route';
+
+    return { ok: false, kind, message };
   } finally {
     await client.end().catch(() => {});
   }
@@ -225,31 +250,44 @@ async function main() {
   );
 
   let working: string | null = null;
-  let sawAuthFailure = false;
+  let rejected = false;
+
+  const EXPLAIN: Record<'rejected' | 'no-tenant' | 'no-route', string> = {
+    rejected: 'found this project, but refused the password',
+    'no-tenant': 'answered, but does not serve this project',
+    'no-route': 'could not be reached',
+  };
 
   for (const url of candidates) {
     const host = new URL(url).hostname;
-    process.stdout.write(`Trying ${host} ... `);
+    process.stdout.write(`\n  ${host}\n    `);
 
     const result = await probe(url);
     if (result.ok) {
-      console.log('connected');
+      console.log('connected, and the credentials work');
       working = url;
       break;
     }
 
-    console.log(result.authFailed ? 'reachable, but rejected the password' : 'unreachable');
-    if (result.authFailed) sawAuthFailure = true;
+    // Print the provider's own words as well as the interpretation. The first
+    // version withheld them, and diagnosing anything then meant writing a
+    // separate script to ask the same question again.
+    console.log(`${EXPLAIN[result.kind]}\n    reported: ${result.message}`);
+    if (result.kind === 'rejected') rejected = true;
   }
 
   if (!working) {
     console.error(
-      sawAuthFailure
-        ? '\nThe host answered but the password was wrong. Nothing was changed.\n' +
-            'Reset it under Settings -> Database and run this again.'
-        : '\nNo pooler host could be reached, so the password was never tested.\n' +
-            'Nothing was changed. Check the project ref and region, and confirm the\n' +
-            'pooler host under Connect -> Connection pooling.'
+      rejected
+        ? '\nThe project was found and the password was refused, so the host, the\n' +
+            'project ref and the username are all correct — only the password is\n' +
+            'wrong. Note that the database password is not your Supabase account\n' +
+            'password: it is generated when the project is created and is separate.\n' +
+            'Set a new one under Settings -> Database -> Reset database password,\n' +
+            'then run this again. Nothing was changed.'
+        : '\nNo pooler served this project, so the password was never tested.\n' +
+            'Check the project ref and region, and confirm the pooler host under\n' +
+            'Connect -> Connection pooling. Nothing was changed.'
     );
     process.exit(1);
   }
