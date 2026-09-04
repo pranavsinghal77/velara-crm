@@ -126,42 +126,44 @@ model Organization {
   campaigns     FieldCampaign[]
   fieldTasks    FieldTask[]
 
-  subscription     Subscription?
-  usageEvents      UsageEvent[]
-  usageCounters    UsageCounter[]
-  apiKeys          ApiKey[]
-  mcpConnections   McpConnection[]
-  aiProviderConfig AiProviderConfig?
-  webhooks         WebhookEndpoint[]
-  attendance       AttendanceRecord[]
-  documents        Document[]
-  workflows        Workflow[]
-  socialConnections SocialConnection[]
-  socialPosts      SocialPost[]
+  subscription         Subscription?
+  usageEvents          UsageEvent[]
+  usageCounters        UsageCounter[]
+  apiKeys              ApiKey[]
+  mcpConnections       McpConnection[]
+  aiProviderConfig     AiProviderConfig?
+  webhooks             WebhookEndpoint[]
+  attendance           AttendanceRecord[]
+  documents            Document[]
+  workflows            Workflow[]
+  socialConnections    SocialConnection[]
+  socialPosts          SocialPost[]
+  socialPostMetrics    SocialPostMetric[]
+  socialAccountMetrics SocialAccountMetric[]
 }
 
 // --- Identity ---------------------------------------------------------------
 
 model User {
-  id           String    @id @default(uuid())
-  orgId        String
-  name         String
-  email        String    @unique
-  passwordHash String
-  avatar       String?
-  role         Role      @default(Sales)
-  isActive     Boolean   @default(true)
-  permissions  String[]  @default([])
+  id              String    @id @default(uuid())
+  orgId           String
+  name            String
+  email           String    @unique
+  passwordHash    String
+  avatar          String?
+  role            Role      @default(Sales)
+  isActive        Boolean   @default(true)
+  permissions     String[]  @default([])
   /// Grants access to the cross-tenant platform console. Deliberately separate
   /// from `role`, which is scoped to one organisation: a tenant Admin must not
   /// be able to escalate into seeing other customers. Set only by
   /// `npm run platform:grant`, never through the app.
-  isPlatformAdmin Boolean @default(false)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  isPlatformAdmin Boolean   @default(false)
+  lastLoginAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  org           Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org           Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   ownedLeads    Lead[]
   messages      Message[]
   reminders     Reminder[]
@@ -221,7 +223,7 @@ model Lead {
   updatedAt        DateTime   @updatedAt
 
   ownerId String?
-  owner   User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   messages  Message[]
@@ -280,7 +282,7 @@ model Reminder {
   updatedAt   DateTime  @updatedAt
 
   ownerId String?
-  owner   User?  @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner   User?   @relation(fields: [ownerId], references: [id], onDelete: SetNull)
 
   org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   lead Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
@@ -361,28 +363,28 @@ model FieldTask {
 /// One row per tenant. Kept separate from Organization so billing state can be
 /// replaced (moving providers, re-plumbing Stripe) without touching identity.
 model Subscription {
-  id                   String             @id @default(uuid())
-  orgId                String             @unique
-  tier                 PlanTier           @default(Trial)
-  status               SubscriptionStatus @default(Trialing)
+  id                 String             @id @default(uuid())
+  orgId              String             @unique
+  tier               PlanTier           @default(Trial)
+  status             SubscriptionStatus @default(Trialing)
   /// Per-tenant limit exceptions, e.g. {"ai_request": 50000}. Null means the
   /// plan defaults in src/billing/plans.ts apply.
-  limitOverrides       Json?
+  limitOverrides     Json?
   /// When true, metered usage past the plan limit is allowed and billed as
   /// overage rather than rejected with 402.
-  allowOverage         Boolean            @default(false)
-  seats                Int                @default(5)
-  trialEndsAt          DateTime?
-  currentPeriodStart   DateTime           @default(now())
-  currentPeriodEnd     DateTime
-  canceledAt           DateTime?
+  allowOverage       Boolean            @default(false)
+  seats              Int                @default(5)
+  trialEndsAt        DateTime?
+  currentPeriodStart DateTime           @default(now())
+  currentPeriodEnd   DateTime
+  canceledAt         DateTime?
 
-  stripeCustomerId     String?            @unique
-  stripeSubscriptionId String?            @unique
+  stripeCustomerId     String? @unique
+  stripeSubscriptionId String? @unique
   stripePriceId        String?
 
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
   invoices Invoice[]
@@ -596,10 +598,10 @@ model AttendanceRecord {
 }
 
 model Document {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   orgId         String
   name          String
-  category      String    @default("Contracts")
+  category      String   @default("Contracts")
   mimeType      String
   sizeBytes     Int
   /// Object-storage key once storage is wired; until then small files are held
@@ -610,8 +612,8 @@ model Document {
   extractedText String?
   leadId        String?
   uploadedById  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
@@ -702,33 +704,34 @@ enum SocialPostStatus {
 /// accounts on the same platform (multiple Facebook pages is the common case),
 /// so uniqueness is per external account rather than per platform.
 model SocialConnection {
-  id             String                 @id @default(uuid())
-  orgId          String
-  platform       SocialPlatform
+  id              String                 @id @default(uuid())
+  orgId           String
+  platform        SocialPlatform
   /// The provider's own id: Facebook page id, Instagram business account id,
   /// LinkedIn organisation/person URN, X user id, WhatsApp phone number id.
-  externalId     String
+  externalId      String
   /// Display handle, e.g. "@velaracrm" or the page name.
-  handle         String
-  avatarUrl      String?
-  accessTokenEnc String
+  handle          String
+  avatarUrl       String?
+  accessTokenEnc  String
   refreshTokenEnc String?
   /// Null when the provider issues long-lived or non-expiring tokens.
-  expiresAt      DateTime?
+  expiresAt       DateTime?
   /// Scopes the provider actually granted, which can be fewer than requested.
-  scopes         String[]               @default([])
-  status         SocialConnectionStatus  @default(Connected)
-  statusDetail   String?
+  scopes          String[]               @default([])
+  status          SocialConnectionStatus @default(Connected)
+  statusDetail    String?
   /// Preferred target when a post does not name a specific account.
-  isDefault      Boolean                @default(false)
-  lastCheckedAt  DateTime?
-  lastPublishAt  DateTime?
-  connectedById  String?
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  isDefault       Boolean                @default(false)
+  lastCheckedAt   DateTime?
+  lastPublishAt   DateTime?
+  connectedById   String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
-  org   Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  posts SocialPostTarget[]
+  org     Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  posts   SocialPostTarget[]
+  metrics SocialAccountMetric?
 
   @@unique([orgId, platform, externalId])
   @@index([orgId, platform])
@@ -740,37 +743,37 @@ model SocialConnection {
 /// user who started the flow. Rows are single-use and expire quickly; without
 /// this an attacker could complete a flow into someone else's workspace.
 model SocialOAuthState {
-  id          String         @id @default(uuid())
-  state       String         @unique
-  orgId       String
-  userId      String
-  platform    SocialPlatform
+  id           String         @id @default(uuid())
+  state        String         @unique
+  orgId        String
+  userId       String
+  platform     SocialPlatform
   /// PKCE verifier for providers that require it (X).
   codeVerifier String?
-  redirectTo  String?
-  expiresAt   DateTime
-  consumedAt  DateTime?
-  createdAt   DateTime       @default(now())
+  redirectTo   String?
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime       @default(now())
 
   @@index([expiresAt])
 }
 
 /// A post the tenant composed, and its delivery outcome per target.
 model SocialPost {
-  id           String           @id @default(uuid())
-  orgId        String
-  body         String
+  id          String           @id @default(uuid())
+  orgId       String
+  body        String
   /// Base64 data URL or storage key. Instagram requires media, so a post
   /// targeting it without this is rejected before any provider call.
-  mediaUrl     String?
-  mediaMime    String?
-  status       SocialPostStatus @default(Draft)
+  mediaUrl    String?
+  mediaMime   String?
+  status      SocialPostStatus @default(Draft)
   /// Null for post-now; set for scheduled delivery.
-  scheduledAt  DateTime?
-  publishedAt  DateTime?
-  createdById  String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  createdById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   org     Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
   targets SocialPostTarget[]
@@ -783,20 +786,82 @@ model SocialPost {
 /// Keeping delivery per target is what lets a post be PartiallyPublished and
 /// retried only where it failed.
 model SocialPostTarget {
-  id           String           @id @default(uuid())
-  postId       String
-  connectionId String
-  status       SocialPostStatus @default(Scheduled)
+  id             String           @id @default(uuid())
+  postId         String
+  connectionId   String
+  status         SocialPostStatus @default(Scheduled)
   /// The provider's id for the created post, for deep links and analytics.
   externalPostId String?
-  permalink    String?
-  error        String?
-  attempts     Int              @default(0)
-  publishedAt  DateTime?
+  permalink      String?
+  error          String?
+  attempts       Int              @default(0)
+  publishedAt    DateTime?
 
-  post       SocialPost       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  connection SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  post       SocialPost        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  connection SocialConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  metrics    SocialPostMetric?
 
   @@unique([postId, connectionId])
   @@index([status])
+}
+
+/// Engagement figures for one delivered post, read back from the platform.
+///
+/// Kept out of SocialPostTarget on purpose: that row records delivery, which
+/// settles once and never changes, while these numbers keep moving for the life
+/// of the post. Mixing them would mean every metrics refresh rewrote the
+/// delivery record.
+model SocialPostMetric {
+  id       String @id @default(uuid())
+  orgId    String
+  targetId String @unique
+
+  /// Every figure is nullable, and a metric the provider did not report is
+  /// listed in `unavailable` rather than stored as 0. LinkedIn gives no
+  /// impressions without the Community Management product, and Instagram
+  /// reports no shares at all — writing a zero there would be a measurement
+  /// the CRM never took.
+  impressions    Int?
+  reach          Int?
+  likes          Int?
+  comments       Int?
+  shares         Int?
+  clicks         Int?
+  videoViews     Int?
+  /// Engagements over reach, as a fraction. Computed on write so a list query
+  /// does not have to, and null when reach is unknown or zero.
+  engagementRate Float?
+  unavailable    String[] @default([])
+
+  fetchedAt  DateTime @default(now())
+  /// Set when the last refresh failed, so the UI can show the figures it has
+  /// alongside the reason they are stale.
+  fetchError String?
+
+  target SocialPostTarget @relation(fields: [targetId], references: [id], onDelete: Cascade)
+  org    Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fetchedAt])
+}
+
+/// Account-level figures for one connected account.
+model SocialAccountMetric {
+  id           String @id @default(uuid())
+  orgId        String
+  connectionId String @unique
+
+  followers      Int?
+  postCount      Int?
+  /// Account impressions over the provider's trailing window, where it reports
+  /// one at all.
+  impressions28d Int?
+  unavailable    String[] @default([])
+
+  fetchedAt  DateTime @default(now())
+  fetchError String?
+
+  connection SocialConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  org        Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId, fetchedAt])
 }

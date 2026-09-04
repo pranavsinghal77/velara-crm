@@ -67,6 +67,29 @@ const schema = z.object({
   X_CLIENT_ID: z.string().default(''),
   X_CLIENT_SECRET: z.string().default(''),
 
+  /**
+   * The background worker that publishes scheduled posts, keeps OAuth tokens
+   * alive and refreshes engagement figures. On by default: without it a
+   * scheduled post is never published, which is worse than the cost of the
+   * poll. Turn it off on all but one instance if you would rather not rely on
+   * the claim in `publishDuePosts` to keep several from racing.
+   */
+  SOCIAL_SCHEDULER: z
+    .string()
+    .default('true')
+    .transform((v) => v !== 'false' && v !== '0'),
+  /** How often to look for scheduled posts that are due. */
+  SOCIAL_POLL_INTERVAL_MS: z.coerce.number().int().min(10_000).max(3_600_000).default(60_000),
+  /** How often to sweep engagement figures for tenants that posted recently. */
+  SOCIAL_INSIGHTS_INTERVAL_MINUTES: z.coerce.number().int().min(5).max(1_440).default(360),
+  /**
+   * Staleness floor. Figures fetched more recently than this are left alone,
+   * whether the request came from the scheduler or from a user pressing
+   * Refresh — which is what stops a held-down button from spending a
+   * provider's rate limit.
+   */
+  SOCIAL_INSIGHTS_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(1_440).default(15),
+
   GEMINI_API_KEY: z.string().default(''),
   GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),

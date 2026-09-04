@@ -13,6 +13,7 @@ import routes from './routes';
 import { HttpError } from './utils/httpError';
 import { logger } from './utils/logger';
 import { purgeExpiredTokens } from './utils/tokens';
+import { startSocialScheduler } from './social/scheduler';
 
 const app = express();
 const httpServer = createServer(app);
@@ -138,6 +139,11 @@ const tokenCleanup = setInterval(
 );
 tokenCleanup.unref();
 
+// Publishes due social posts, refreshes provider tokens before they expire and
+// pulls engagement figures. `runDuePosts` had described itself as being called
+// by a scheduler since it was written; this is that scheduler.
+const stopSocialScheduler = startSocialScheduler();
+
 /**
  * Graceful shutdown: stop accepting connections, close sockets, then release
  * the database pool. Without this, a redeploy can drop in-flight requests and
@@ -146,6 +152,7 @@ tokenCleanup.unref();
 async function shutdown(signal: string) {
   logger.info(`${signal} received, shutting down`);
   clearInterval(tokenCleanup);
+  stopSocialScheduler();
 
   const timeout = setTimeout(() => {
     logger.error('Shutdown timed out, forcing exit');

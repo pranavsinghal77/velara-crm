@@ -253,6 +253,13 @@ async function fetchWithTimeout(url: string, init: RequestInit): Promise<Respons
     if (err instanceof Error && err.name === 'AbortError') {
       throw serviceUnavailable('The platform did not respond in time.');
     }
+    // A DNS or connectivity failure arrives as a bare `TypeError: fetch
+    // failed`, and that string was being stored as the reason a customer's
+    // post did not go out. Naming the platform and the kind of failure at
+    // least tells them where to look.
+    if (err instanceof TypeError) {
+      throw serviceUnavailable('Could not reach the platform (network error).');
+    }
     throw err;
   } finally {
     clearTimeout(timer);

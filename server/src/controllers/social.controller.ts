@@ -27,8 +27,13 @@ import {
   discoverMetaAccounts,
   discoverWhatsAppNumbers,
   discoverXIdentity,
-  publishTo,
 } from '../social/publish.service';
+import { MAX_ATTEMPTS, deliverPost, publishDuePosts } from '../social/delivery.service';
+import { refreshOrgInsights } from '../social/insights.service';
+import { assertWithinLimit } from '../billing/usage.service';
+import { resolveAiCredential } from '../services/aiCredential.service';
+import { asUntrustedInput, generateJson } from '../services/ai.service';
+import { z } from 'zod';
 import type { IdParam } from '../schemas';
 
 /**
@@ -507,7 +512,7 @@ export async function createPost(req: Request, res: Response) {
   });
 
   if (!scheduled) {
-    await deliver(post.id, orgId, userId);
+    await deliverPost({ postId: post.id, orgId, userId });
   }
 
   res.status(201).json(await serializePost(post.id));
@@ -524,108 +529,23 @@ export async function publishPost(req: Request, res: Response) {
     throw badRequest('This post has already been published everywhere.');
   }
 
-  await deliver(id, orgId, userId);
-  res.json(await serializePost(id));
-}
+  const outcome = await deliverPost({ postId: id, orgId, userId });
 
-/**
- * Sends one post to each of its pending targets.
- *
- * Targets are independent: one platform rejecting the content does not stop the
- * others, and the post ends up Published, PartiallyPublished or Failed
- * according to what actually happened.
- */
-async function deliver(postId: string, orgId: string, userId: string): Promise<void> {
-  const post = await prisma.socialPost.findUniqueOrThrow({
-    where: { id: postId },
-    include: { targets: { include: { connection: true } } },
-  });
-
-  const pending = post.targets.filter(
-    (t) => t.status !== SocialPostStatus.Published
-  );
-
-  await prisma.socialPost.update({
-    where: { id: postId },
-    data: { status: SocialPostStatus.Publishing },
-  });
-
-  for (const target of pending) {
-    try {
-      const result = await publishTo(target.connection, {
-        body: post.body,
-        mediaUrl: post.mediaUrl,
-      });
-
-      await prisma.$transaction([
-        prisma.socialPostTarget.update({
-          where: { id: target.id },
-          data: {
-            status: SocialPostStatus.Published,
-            externalPostId: result.externalPostId,
-            permalink: result.permalink ?? null,
-            error: null,
-            attempts: { increment: 1 },
-            publishedAt: new Date(),
-          },
-        }),
-        prisma.socialConnection.update({
-          where: { id: target.connectionId },
-          data: { lastPublishAt: new Date() },
-        }),
-      ]);
-
-      await record({ orgId, userId }, UsageKind.message_sent, {
-        metadata: { channel: target.connection.platform, kind: 'social_post' },
-      });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Publish failed';
-
-      await prisma.socialPostTarget.update({
-        where: { id: target.id },
-        data: {
-          status: SocialPostStatus.Failed,
-          error: message,
-          attempts: { increment: 1 },
-        },
-      });
-
-      // An auth failure is about the connection, not this post; mark it so the
-      // UI prompts a reconnect instead of letting every future post fail.
-      if (/reconnect|revoked|permission denied|rejected the request/i.test(message)) {
-        await prisma.socialConnection.update({
-          where: { id: target.connectionId },
-          data: {
-            status: SocialConnectionStatus.Expired,
-            statusDetail: message,
-          },
-        });
-      }
-
-      logger.warn('Social publish target failed', {
-        postId,
-        platform: target.connection.platform,
-        error: message,
-      });
-    }
-  }
-
-  const after = await prisma.socialPostTarget.findMany({ where: { postId } });
-  const published = after.filter((t) => t.status === SocialPostStatus.Published).length;
-
-  await prisma.socialPost.update({
-    where: { id: postId },
-    data: {
-      status:
-        published === after.length
-          ? SocialPostStatus.Published
-          : published === 0
-            ? SocialPostStatus.Failed
-            : SocialPostStatus.PartiallyPublished,
-      publishedAt: published > 0 ? new Date() : null,
-    },
+  res.json({
+    ...(await serializePost(id)),
+    // A retry that attempted nothing because every failed target had used its
+    // three attempts looks identical to one that tried and failed again. Say
+    // which it was, so the UI is not left implying an attempt it never made.
+    attempted: outcome.published + outcome.failed - outcome.exhausted,
+    exhausted: outcome.exhausted,
+    ...(outcome.exhausted > 0 && outcome.published === 0
+      ? {
+          notice: `No attempt was made: ${outcome.exhausted} target(s) have already used their ${MAX_ATTEMPTS} attempts. Fix the cause and create a new post.`,
+        }
+      : {}),
   });
 }
+
 
 /** GET /api/social/posts */
 export async function listPosts(req: Request, res: Response) {
@@ -685,24 +605,235 @@ export async function cancelPost(req: Request, res: Response) {
 
 /**
  * POST /api/social/posts/run-due — publishes scheduled posts that are due.
- * Called by the scheduler, and available to an admin to flush manually.
+ *
+ * The scheduler does this on its own now; this endpoint remains so an operator
+ * can flush a backlog without waiting for the next tick. Both go through the
+ * same claiming sweep, so pressing it while the scheduler is mid-run cannot
+ * double-publish anything — the caller that loses the claim simply reports
+ * fewer posts.
  */
 export async function runDuePosts(req: Request, res: Response) {
   const { orgId, userId } = auth(req);
 
-  const due = await prisma.socialPost.findMany({
-    where: {
-      orgId,
-      status: SocialPostStatus.Scheduled,
-      scheduledAt: { lte: new Date() },
+  const result = await publishDuePosts({ orgId, userId });
+
+  res.json({
+    processed: result.claimed,
+    published: result.published,
+    failed: result.failed,
+  });
+}
+
+// --- Insights ---------------------------------------------------------------
+
+/**
+ * GET /api/social/insights
+ *
+ * Engagement as the platforms report it. Reads only what has been stored: a
+ * page load must not trigger a dozen provider calls, so refreshing is either
+ * the scheduler's job or an explicit POST below.
+ *
+ * Nothing here substitutes a zero for a figure a provider withheld. Each row
+ * carries its own `unavailable` list, and a caller that wants to render "—"
+ * instead of "0" has what it needs to tell the difference.
+ */
+export async function getInsights(req: Request, res: Response) {
+  const { orgId } = auth(req);
+
+  const [connections, targets] = await Promise.all([
+    prisma.socialConnection.findMany({
+      where: { orgId },
+      include: { metrics: true },
+      orderBy: [{ platform: 'asc' }, { createdAt: 'asc' }],
+    }),
+    prisma.socialPostTarget.findMany({
+      where: { status: SocialPostStatus.Published, post: { orgId } },
+      include: { connection: true, metrics: true, post: true },
+      orderBy: { publishedAt: 'desc' },
+      take: 40,
+    }),
+  ]);
+
+  const accounts = connections.map((c) => ({
+    connectionId: c.id,
+    platform: c.platform,
+    label: providerFor(c.platform).label,
+    handle: c.handle,
+    avatarUrl: c.avatarUrl ?? undefined,
+    status: c.status,
+    followers: c.metrics?.followers ?? null,
+    postCount: c.metrics?.postCount ?? null,
+    impressions28d: c.metrics?.impressions28d ?? null,
+    unavailable: c.metrics?.unavailable ?? [],
+    fetchedAt: c.metrics?.fetchedAt.toISOString() ?? null,
+    fetchError: c.metrics?.fetchError ?? null,
+  }));
+
+  const posts = targets.map((t) => ({
+    targetId: t.id,
+    postId: t.postId,
+    platform: t.connection.platform,
+    handle: t.connection.handle,
+    body: t.post.body,
+    permalink: t.permalink,
+    publishedAt: t.publishedAt?.toISOString() ?? null,
+    impressions: t.metrics?.impressions ?? null,
+    reach: t.metrics?.reach ?? null,
+    likes: t.metrics?.likes ?? null,
+    comments: t.metrics?.comments ?? null,
+    shares: t.metrics?.shares ?? null,
+    clicks: t.metrics?.clicks ?? null,
+    engagementRate: t.metrics?.engagementRate ?? null,
+    unavailable: t.metrics?.unavailable ?? [],
+    fetchedAt: t.metrics?.fetchedAt.toISOString() ?? null,
+    fetchError: t.metrics?.fetchError ?? null,
+    /** True where the post is delivered but its figures were never fetched. */
+    awaitingFirstFetch: !t.metrics,
+  }));
+
+  // Totals sum only what was actually reported. A platform that withholds
+  // impressions must not drag the total towards zero, so the count of posts
+  // each total is built from travels with it.
+  const sum = (pick: (p: (typeof posts)[number]) => number | null) => {
+    const values = posts.map(pick).filter((v): v is number => v !== null);
+    return { value: values.reduce((a, b) => a + b, 0), fromPosts: values.length };
+  };
+
+  res.json({
+    accounts,
+    posts,
+    totals: {
+      posts: posts.length,
+      followers: accounts.reduce((a, c) => a + (c.followers ?? 0), 0),
+      impressions: sum((p) => p.impressions),
+      reach: sum((p) => p.reach),
+      engagements: sum((p) =>
+        p.likes === null && p.comments === null && p.shares === null
+          ? null
+          : (p.likes ?? 0) + (p.comments ?? 0) + (p.shares ?? 0)
+      ),
     },
-    select: { id: true },
-    take: 50,
+    oldestFetchedAt:
+      posts.reduce<string | null>(
+        (oldest, p) => (p.fetchedAt && (!oldest || p.fetchedAt < oldest) ? p.fetchedAt : oldest),
+        null
+      ) ?? null,
+  });
+}
+
+/**
+ * POST /api/social/insights/refresh
+ *
+ * Fetches from the providers now. Rate-limited by the staleness floor rather
+ * than by the route alone: figures newer than SOCIAL_INSIGHTS_MAX_AGE_MINUTES
+ * are left alone, so holding the button down costs nothing after the first
+ * press. The response says how many rows were skipped for that reason, which
+ * is more honest than reporting a refresh that did not happen.
+ */
+export async function refreshInsights(req: Request, res: Response) {
+  const { orgId } = auth(req);
+
+  const result = await refreshOrgInsights(orgId);
+
+  res.json(result);
+}
+
+// --- Content ideas ----------------------------------------------------------
+
+const ideasResult = z.object({
+  ideas: z
+    .array(
+      z.object({
+        text: z.string().min(1).max(400),
+        rationale: z.string().min(1).max(300),
+        suggestedPlatform: z.enum(['instagram', 'facebook', 'linkedin', 'x', 'any']),
+      })
+    )
+    .min(1)
+    .max(6),
+});
+
+/**
+ * GET /api/social/ideas
+ *
+ * Content suggestions drawn from the tenant's own best-performing posts.
+ *
+ * This replaces a hardcoded `AI_IDEAS` array of four strings that claimed to
+ * be trending. It is deliberately *not* a trends feed: this server has no
+ * trend data source, and inventing one is how the panel it replaces came to
+ * exist. What it does have is which of the customer's posts actually earned
+ * engagement, which is a better basis for the next one anyway.
+ *
+ * With nothing published yet there is nothing to learn from, and the endpoint
+ * says so instead of generating plausible filler.
+ */
+export async function contentIdeas(req: Request, res: Response) {
+  const { orgId, userId } = auth(req);
+
+  const performers = await prisma.socialPostMetric.findMany({
+    where: { orgId, engagementRate: { not: null } },
+    include: { target: { include: { post: true, connection: true } } },
+    orderBy: { engagementRate: 'desc' },
+    take: 8,
   });
 
-  for (const post of due) {
-    await deliver(post.id, orgId, userId);
+  if (performers.length === 0) {
+    return res.json({
+      data: [],
+      basis: 'none',
+      reason:
+        'No published post has engagement figures yet. Publish something and let the next insights refresh run, and suggestions will be based on what worked.',
+    });
   }
 
-  res.json({ processed: due.length });
+  const resolved = await resolveAiCredential(orgId);
+  if (!resolved.enabled) {
+    throw serviceUnavailable(resolved.reason ?? 'AI features are unavailable.');
+  }
+  if (!resolved.credential.tenantFunded) {
+    await assertWithinLimit(orgId, UsageKind.ai_request);
+  }
+
+  const digest = performers
+    .map((m, i) => {
+      const rate = m.engagementRate === null ? 'unknown' : `${(m.engagementRate * 100).toFixed(1)}%`;
+      return [
+        `${i + 1}. platform=${m.target.connection.platform}`,
+        `engagement_rate=${rate}`,
+        `likes=${m.likes ?? 'n/a'} comments=${m.comments ?? 'n/a'}`,
+        `body="${m.target.post.body.slice(0, 220)}"`,
+      ].join(' ');
+    })
+    .join('\n');
+
+  const data = await generateJson(
+    [
+      'You advise an Indian B2B company on social content.',
+      'Below are their best-performing posts, ranked by engagement rate, with',
+      'the figures their platforms reported.',
+      '',
+      'Propose up to 5 ideas for their next posts. Ground every idea in a',
+      'pattern visible in the data below - a subject, a format, a length, a',
+      'platform - and say which pattern in the rationale. Do not claim',
+      'knowledge of external trends: you have none.',
+      '',
+      asUntrustedInput('top_posts', digest),
+      '',
+      'Respond with JSON: {"ideas": [{"text": string, "rationale": string,',
+      '"suggestedPlatform": "instagram"|"facebook"|"linkedin"|"x"|"any"}]}',
+    ].join('\n'),
+    ideasResult,
+    resolved.credential
+  );
+
+  await record({ orgId, userId, apiKeyId: req.apiKeyId }, UsageKind.ai_request, {
+    costPaise: resolved.costPaise,
+    metadata: { operation: 'social-content-ideas', basedOn: performers.length },
+  });
+
+  res.json({
+    data: data.ideas,
+    basis: 'own_posts',
+    basedOnPosts: performers.length,
+  });
 }

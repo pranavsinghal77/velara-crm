@@ -226,6 +226,28 @@ than accepted from the client.
 - **Leaderboard** — Per-owner pipeline, win count and conversion rate.
 - **Team, Documents, Social, Workflows, Support, Field Ops** — supporting modules.
 
+### Social channels
+Facebook Pages, Instagram, LinkedIn, X and WhatsApp Business, each connected by a
+real OAuth authorization-code flow with single-use `state` (and PKCE for X). Tokens
+are encrypted at rest, refreshed before they expire, and a platform this server
+holds no client credentials for reports itself unavailable rather than showing a
+green dot.
+
+Publishing is per-target: a post carries one row per account, so one platform
+rejecting the content leaves the others published and the post lands as
+`PartiallyPublished` with the provider's own message on the target that failed. A
+target is retried up to three times and then left alone.
+
+Engagement is read back from each provider — likes, comments, shares, impressions,
+reach — and a figure a platform does not expose is recorded as *unavailable with
+the reason*, never as zero. Instagram reports no share count and LinkedIn no
+impressions without the Community Management product, and the API says so instead
+of showing a nought that no platform measured.
+
+A background worker publishes scheduled posts when their time arrives, keeps tokens
+alive and refreshes insights. Each due post is claimed with a conditional update
+before any provider call, so two API instances cannot both publish it.
+
 ### Field operations
 Campaigns, tasks and photo-based compliance checks. A submitted photo is genuinely
 sent to a vision model; the verdict is written by the server, and a task stays
@@ -271,6 +293,20 @@ All routes are under `/api`. Everything except `/api/auth/login`, `/refresh` and
 | GET | `/field-campaigns` | |
 | POST | `/field-campaigns`, `/field-campaigns/tasks` | Manager |
 | PUT | `/field-campaigns/tasks/:id` | Sales |
+
+### Social
+| Method | Path | Role |
+|---|---|---|
+| GET | `/social/providers`, `/social/connections` | Viewer |
+| POST | `/social/connect/:platform` | Admin. Returns the consent URL |
+| GET | `/social/callback/:platform` | Unauthenticated; proven by `state` |
+| DELETE/PUT | `/social/connections/:id`, `/:id/default`, `/:id/verify` | Admin |
+| GET/POST | `/social/posts` | Sales to write |
+| POST | `/social/posts/:id/publish`, `/social/posts/run-due` | Sales |
+| DELETE | `/social/posts/:id` | Cancels a schedule; refuses a live post |
+| GET | `/social/insights` | Stored figures only; never calls a provider |
+| POST | `/social/insights/refresh` | Fetches now, subject to the staleness floor |
+| GET | `/social/ideas` | Suggestions from the tenant's own best posts |
 
 ### AI
 `GET /ai/status`, and `POST` to `/ai/smart-reply`, `/ai/sentiment-analysis`,
@@ -328,8 +364,14 @@ Honest list of what is not done:
   `GEMINI_MODEL`; verify the default against the current model list for your key.
 - **No email delivery.** Inviting a member sets a temporary password that an admin
   has to communicate out of band. There is no password-reset flow.
-- **Documents, Social, Workflows and parts of Field Ops still use local component
-  state** and are not persisted server-side. They are UI-complete, not backed.
+- **The Documents, Workflows and Social pages are not yet wired to their
+  backends.** Those APIs exist and are tested — storage, automation runs,
+  publishing and insights — but several panels still render local component state,
+  and the social performance panels still show the arrays they shipped with,
+  labelled "sample data". The wiring is the remaining work, not the backend.
+- **No inbound social webhooks.** Comments and DMs are not ingested, so the Inbox
+  covers WhatsApp, email and SMS but not replies on a published post. Publishing
+  and insights are outbound only.
 - **No PWA.** There is no service worker or manifest, despite the mobile-first
   layout.
 - **Field photos are stored as base64 in Postgres.** Fine for light use; move to

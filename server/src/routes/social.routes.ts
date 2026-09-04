@@ -1,19 +1,22 @@
 import { Router } from 'express';
 import {
   cancelPost,
+  contentIdeas,
   createPost,
   disconnect,
+  getInsights,
   listConnections,
   listPosts,
   listProviders,
   publishPost,
+  refreshInsights,
   runDuePosts,
   setDefault,
   startConnect,
   verifyConnection,
 } from '../controllers/social.controller';
 import { requireAdmin, requireWriter } from '../middlewares/auth';
-import { writeLimiter } from '../middlewares/rateLimits';
+import { aiLimiter, writeLimiter } from '../middlewares/rateLimits';
 import { validate } from '../middlewares/validate';
 import {
   createSocialPostSchema,
@@ -72,5 +75,16 @@ router.post(
   publishPost
 );
 router.delete('/posts/:id', writeLimiter, requireWriter, validate(idParam, 'params'), cancelPost);
+
+// Reading engagement is reporting: anyone who can see the workspace can see it.
+router.get('/insights', getInsights);
+
+// Refreshing reaches out to the providers, so it is a write as far as rate
+// limiting is concerned even though it stores no user input. The staleness
+// floor inside the service is the real guard.
+router.post('/insights/refresh', writeLimiter, requireWriter, refreshInsights);
+
+// Suggestions cost an AI call, metered and plan-checked inside the handler.
+router.get('/ideas', aiLimiter, contentIdeas);
 
 export default router;
