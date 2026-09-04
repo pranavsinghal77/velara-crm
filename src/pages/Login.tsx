@@ -14,6 +14,7 @@ import {
 import { ApiError } from '../lib/api';
 import { DEMO_ACCOUNTS, DEMO_LOGIN_ENABLED } from '../lib/config';
 import { useCrmStore } from '../store/useCrmStore';
+import LoginBackdrop from '../components/LoginBackdrop';
 
 const FEATURES = [
   'AI Lead Scoring - know your hottest leads instantly',
@@ -70,19 +71,25 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel */}
-      <div className="hidden md:flex md:w-3/5 flex-col justify-between bg-gradient-to-br from-slate-900 via-blue-900 to-blue-700 p-12 text-white">
-        <div className="flex flex-col gap-3">
+      {/* Left panel.
+          `isolate` creates a stacking context so the backdrop's layers cannot
+          escape above the form on the right, and the content below carries an
+          explicit z-index rather than relying on source order. */}
+      <div className="hidden md:flex md:w-3/5 flex-col justify-between p-12 text-white relative isolate overflow-hidden">
+        <LoginBackdrop />
+        <div className="flex flex-col gap-3 relative z-10 anim-rise">
           <div className="flex items-center gap-1">
             <span className="text-4xl font-black text-white">Velara</span>
             <span className="text-4xl font-black text-blue-300">CRM</span>
           </div>
-          <span className="text-sm text-blue-200 bg-blue-800/40 px-3 py-1 rounded-full w-fit">
+          {/* Backdrop-blurred rather than solid: the pill sits over moving
+              colour, and a flat fill would look pasted on. */}
+          <span className="text-sm text-blue-100 bg-white/10 backdrop-blur-md border border-white/15 px-3 py-1 rounded-full w-fit">
             AI-First - Made for India
           </span>
         </div>
 
-        <div className="flex flex-col gap-4 my-auto py-10">
+        <div className="flex flex-col gap-4 my-auto py-10 relative z-10">
           <h2 className="text-3xl font-bold leading-tight">
             Close More Deals with AI Intelligence
           </h2>
@@ -92,8 +99,8 @@ export default function Login() {
           <div className="flex flex-col gap-3 mt-2">
             {FEATURES.map((f) => (
               <div key={f} className="flex items-center gap-3">
-                <span className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                  <CheckCircle2 className="w-3 h-3 text-white" />
+                <span className="w-6 h-6 rounded-full bg-emerald-400/15 border border-emerald-300/30 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300" />
                 </span>
                 <span className="text-white text-sm">{f}</span>
               </div>
@@ -101,13 +108,35 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="text-blue-200 text-xs">
+        <p className="text-blue-200/90 text-xs relative z-10">
           Sessions are protected by short-lived tokens and an httpOnly refresh cookie.
         </p>
       </div>
 
-      {/* Right panel */}
-      <div className="w-full md:w-2/5 bg-white flex flex-col justify-center px-8 py-12 md:px-12">
+      {/* Right panel.
+          Was flat white, which made signing in feel like a different product
+          from the one behind it. `--bg-gradient` is the same wash every page
+          of the app sits on, so the transition into the dashboard is
+          continuous — and it follows the workspace theme, so a tenant on
+          'mist' or 'sunset' gets a sign-in page that matches.
+
+          On mobile the left panel is hidden entirely, so this is also the
+          whole background there: the dot mesh comes along to keep it from
+          being a blank sheet. */}
+      <div className="w-full md:w-2/5 flex flex-col justify-center px-8 py-12 md:px-12 relative isolate">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 -z-10"
+          style={{ background: 'var(--bg-gradient)' }}
+        />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 auth-mesh-light" />
+
+        {/* Below `md` the branded panel is gone and this is the entire page, so
+            it would otherwise be a white sheet with a form on it. One bloom in
+            the primary blue carries the brand across without competing with
+            the form for attention. Hidden from `md` up, where the left panel
+            already does this job. */}
+        <div aria-hidden="true" className="auth-bloom-mobile md:hidden" />
         <form
           className="w-full max-w-sm mx-auto flex flex-col gap-6 stagger"
           onSubmit={(e) => {
