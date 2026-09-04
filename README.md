@@ -149,8 +149,9 @@ typing indicators exempted: a frozen progress indicator reads as a hung request.
 | `TRUST_PROXY` | no | Set `true` behind a load balancer so rate limiting sees real client IPs. |
 | `APP_TIMEZONE` | no | IANA zone for business dates. Default `Asia/Kolkata`. |
 | `GEMINI_API_KEY` | no | Leave blank to run without AI; AI endpoints then return `503`. |
-| `GEMINI_MODEL` | no | Default `gemini-2.5-flash`. |
-| `GEMINI_VISION_MODEL` | no | Default `gemini-2.5-flash`. |
+| `GEMINI_MODEL` | no | Default `gemini-3.1-flash-lite`. Pinned, not an alias. |
+| `GEMINI_VISION_MODEL` | no | Default `gemini-3.1-flash-lite`. |
+| `AI_REQUEST_TIMEOUT_MS` | no | Default `45000`. |
 
 ### `.env` (web app)
 
@@ -360,8 +361,12 @@ caching for hashed assets.
 Honest list of what is not done:
 
 - **`@google/generative-ai` is the legacy Gemini SDK.** It works, but Google's
-  successor package is the long-term home. Model ids are configurable via
-  `GEMINI_MODEL`; verify the default against the current model list for your key.
+  successor package is the long-term home.
+- **Model ids retire.** `gemini-2.5-flash` was the default until a key issued
+  after its cutoff started getting `404 ... no longer available to new users`
+  on every call. `GET /ai/status` reports the configured model and the last
+  provider error, so this shows up as a named failure rather than as an
+  assistant that quietly returns 503. Check it after changing the model.
 - **No email delivery.** Inviting a member sets a temporary password that an admin
   has to communicate out of band. There is no password-reset flow.
 - **The Documents, Workflows and Social pages are not yet wired to their

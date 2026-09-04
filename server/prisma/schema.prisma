@@ -536,8 +536,8 @@ model AiProviderConfig {
   orgId              String   @unique
   provider           String   @default("gemini")
   apiKeyEnc          String?
-  model              String   @default("gemini-2.5-flash")
-  visionModel        String   @default("gemini-2.5-flash")
+  model              String   @default("gemini-3.1-flash-lite")
+  visionModel        String   @default("gemini-3.1-flash-lite")
   enabled            Boolean  @default(true)
   /// Monthly ceiling in paise for tenant-funded spend; null means unlimited.
   monthlyBudgetPaise Int?

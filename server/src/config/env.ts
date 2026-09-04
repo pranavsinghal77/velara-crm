@@ -91,8 +91,39 @@ const schema = z.object({
   SOCIAL_INSIGHTS_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(1_440).default(15),
 
   GEMINI_API_KEY: z.string().default(''),
-  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
-  GEMINI_VISION_MODEL: z.string().default('gemini-2.5-flash'),
+  /**
+   * Model ids are pinned, not aliased.
+   *
+   * `gemini-2.5-flash` was the default and is now retired: a key issued after
+   * its cutoff gets `404 ... no longer available to new users` on every call,
+   * which is what took the assistant down while /ai/status still reported
+   * itself available.
+   *
+   * Google's 404 recommends gemini-3.6-flash, and that does work — but
+   * measured against this key it spent 1545 tokens thinking and took 31s to
+   * answer a chat prompt, and its thinking cannot be switched off
+   * (`thinkingBudget: 0` comes back as an invalid argument). Half a minute is
+   * not a chat response. The lite tier does no thinking at all by default: it
+   * answered the same prompt in 2.4s at a comparable length, and read an
+   * image in 5.7s where 3.6-flash took 24.6s. Swap in a larger model if you
+   * would rather have the quality than the latency.
+   *
+   * Deliberately not `gemini-flash-latest`. An alias silently changes the
+   * model under a deployment, and several endpoints here depend on structured
+   * JSON matching a zod schema — that is not something to let drift without a
+   * deploy. Check `GET /ai/status` after changing it.
+   */
+  GEMINI_MODEL: z.string().default('gemini-3.1-flash-lite'),
+  GEMINI_VISION_MODEL: z.string().default('gemini-3.1-flash-lite'),
+  /**
+   * Ceiling for one provider call. Was a hardcoded 20s, which the newer
+   * models exceed regularly: the model above answers text in about 2s but
+   * took 15.6s for a JSON completion, and a thinking model took 31s. A
+   * timeout shorter than the model is slow is indistinguishable from an
+   * outage, so this leaves real headroom rather than sitting on the measured
+   * figure.
+   */
+  AI_REQUEST_TIMEOUT_MS: z.coerce.number().int().min(5_000).max(180_000).default(45_000),
 });
 
 const parsed = schema.safeParse(process.env);

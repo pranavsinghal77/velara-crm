@@ -19,7 +19,7 @@ import { logger } from '../utils/logger';
  *     hoping.
  */
 
-const REQUEST_TIMEOUT_MS = 20_000;
+const REQUEST_TIMEOUT_MS = env.AI_REQUEST_TIMEOUT_MS;
 
 const platformClient = env.aiEnabled ? new GoogleGenerativeAI(env.GEMINI_API_KEY) : null;
 
@@ -38,7 +38,59 @@ export interface AiCredential {
   tenantFunded: boolean;
 }
 
-export const aiAvailable = () => platformClient !== null;
+/** True when a platform key is configured. Says nothing about whether it works. */
+export const aiConfigured = () => platformClient !== null;
+
+/**
+ * The last thing the provider actually did.
+ *
+ * Every call updates this, so reporting availability costs no extra request.
+ * A configured key with a retired model id looks identical to a working setup
+ * until something calls out — and then this is the difference between the UI
+ * saying "AI is unavailable: the model returned 404" and it offering a button
+ * that 503s.
+ */
+interface AiHealth {
+  configured: boolean;
+  model: string;
+  lastSuccessAt: string | null;
+  lastError: { message: string; model: string; at: string } | null;
+}
+
+const health: { lastSuccessAt: Date | null; lastError: { message: string; model: string; at: Date } | null } = {
+  lastSuccessAt: null,
+  lastError: null,
+};
+
+function recordSuccess() {
+  health.lastSuccessAt = new Date();
+  health.lastError = null;
+}
+
+function recordFailure(model: string, err: unknown) {
+  health.lastError = {
+    // The provider's own words. A retired model, a revoked key and a quota
+    // ceiling all arrive here, and they need different fixes.
+    message: err instanceof Error ? err.message : String(err),
+    model,
+    at: new Date(),
+  };
+}
+
+export function aiHealth(): AiHealth {
+  return {
+    configured: aiConfigured(),
+    model: env.GEMINI_MODEL,
+    lastSuccessAt: health.lastSuccessAt?.toISOString() ?? null,
+    lastError: health.lastError
+      ? {
+          message: health.lastError.message,
+          model: health.lastError.model,
+          at: health.lastError.at.toISOString(),
+        }
+      : null,
+  };
+}
 
 /** Per-tenant clients are cached so a hot tenant is not re-instantiating one. */
 const tenantClients = new Map<string, GoogleGenerativeAI>();
@@ -109,10 +161,12 @@ export async function generateText(
     const result = await withTimeout(model.generateContent(prompt), 'AI request');
     const text = result.response.text().trim();
     if (!text) throw new Error('empty completion');
+    recordSuccess();
     return text;
   } catch (err) {
+    recordFailure(credential?.model ?? env.GEMINI_MODEL, err);
     logger.error('AI text generation failed', {
-      model: env.GEMINI_MODEL,
+      model: credential?.model ?? env.GEMINI_MODEL,
       error: err instanceof Error ? err.message : String(err),
     });
     throw serviceUnavailable('The AI service is currently unavailable. Please try again.');
@@ -137,9 +191,11 @@ export async function generateJson<T>(
   try {
     const result = await withTimeout(model.generateContent(prompt), 'AI request');
     raw = result.response.text().trim();
+    recordSuccess();
   } catch (err) {
+    recordFailure(credential?.model ?? env.GEMINI_MODEL, err);
     logger.error('AI JSON generation failed', {
-      model: env.GEMINI_MODEL,
+      model: credential?.model ?? env.GEMINI_MODEL,
       error: err instanceof Error ? err.message : String(err),
     });
     throw serviceUnavailable('The AI service is currently unavailable. Please try again.');

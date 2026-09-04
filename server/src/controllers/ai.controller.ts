@@ -6,7 +6,7 @@ import { auth } from '../middlewares/auth';
 import { forbidden, notFound } from '../utils/httpError';
 import { UsageKind } from '@prisma/client';
 import {
-  aiAvailable,
+  aiHealth,
   asUntrustedInput,
   generateJson,
   generateJsonFromImage,
@@ -63,9 +63,27 @@ async function withAiMetering<T>(
  * reason over another's pipeline.
  */
 
-/** GET /api/ai/status - lets the UI hide AI affordances instead of guessing. */
+/**
+ * GET /api/ai/status - lets the UI hide AI affordances instead of guessing.
+ *
+ * `available` used to mean only "a key is configured", which is a different
+ * claim from "AI works". With a retired model id this endpoint reported itself
+ * available while every call returned 503, so the UI kept offering AI it could
+ * not deliver. It now reports the model in use and the provider's own last
+ * error, and calls itself unavailable once a call has actually failed.
+ */
 export function getAiStatus(_req: Request, res: Response) {
-  res.json({ available: aiAvailable() });
+  const health = aiHealth();
+
+  res.json({
+    // False once the provider has rejected a call and nothing has succeeded
+    // since. A configured key is necessary, not sufficient.
+    available: health.configured && health.lastError === null,
+    configured: health.configured,
+    model: health.model,
+    lastSuccessAt: health.lastSuccessAt,
+    lastError: health.lastError,
+  });
 }
 
 // --- 1. Smart reply ---------------------------------------------------------
