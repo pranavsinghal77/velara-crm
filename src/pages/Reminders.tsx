@@ -164,7 +164,7 @@ export default function Reminders() {
     <div className="page-stack">
       {/* Toast */}
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg animate-fade-in">
+        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2 rounded-lg shadow-lg toast-enter">
           {toast}
         </div>
       )}
@@ -379,8 +379,8 @@ export default function Reminders() {
 
       {/* ═══ ADD / EDIT MODAL ════════════════════════════════ */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overlay-enter">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden modal-enter">
             {/* header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">{editId ? 'Edit Reminder' : 'Add New Reminder'}</h3>

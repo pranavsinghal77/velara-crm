@@ -11,6 +11,7 @@ import {
   Cell,
 } from 'recharts';
 import { useNavigate } from 'react-router-dom';
+import AnimatedNumber from '../components/AnimatedNumber';
 import { sumLeadValueLakhs } from '../lib/money';
 import { useCrmStore } from '../store/useCrmStore';
 import type { Lead } from '../types/models';
@@ -226,13 +227,15 @@ export default function Dashboard() {
       </div>
 
       {/* ═══ 4 KPI CARDS ══════════════════════════════════════ */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
         {/* Total Pipeline */}
         <div className="glass-panel rounded-2xl p-5 flex flex-col justify-between card-hover">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Pipeline Value</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">₹{totalPipelineLakhs.toFixed(1)}L</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">
+                <AnimatedNumber value={totalPipelineLakhs} decimals={1} prefix="₹" suffix="L" />
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100">
               <IndianRupee size={20} />
@@ -250,7 +253,7 @@ export default function Dashboard() {
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">High Intent Deals</p>
               <p className="text-2xl font-bold text-slate-900 mt-1 flex items-center gap-1.5">
-                {hotLeads} <span className="text-base">🔥</span>
+                <AnimatedNumber value={hotLeads} /> <span className="text-base">🔥</span>
               </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600 border border-orange-100">
@@ -268,7 +271,9 @@ export default function Dashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Follow-ups Due Today</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">{followUpsDue}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">
+                <AnimatedNumber value={followUpsDue} />
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100">
               <Clock size={20} />
@@ -285,7 +290,9 @@ export default function Dashboard() {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Deals Closed Won</p>
-              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">{wonThisMonth}</p>
+              <p className="text-2xl font-bold text-slate-900 mt-1 font-mono">
+                <AnimatedNumber value={wonThisMonth} />
+              </p>
             </div>
             <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100">
               <Trophy size={20} />
@@ -326,7 +333,12 @@ export default function Dashboard() {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                     }}
                   />
-                  <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                  <Bar
+                    dataKey="count"
+                    radius={[8, 8, 0, 0]}
+                    animationDuration={700}
+                    animationEasing="ease-out"
+                  >
                     {sourceData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
@@ -348,7 +360,7 @@ export default function Dashboard() {
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 stagger stagger-tight">
               {[
                 { text: 'Rajesh Kumar generated GST Proforma Quotation (₹1.8L)', time: '10 mins ago', dot: 'bg-emerald-500' },
                 { text: 'ZeroBT Radar analyzed Priya Sharma conversation (Frustration: 24%)', time: '35 mins ago', dot: 'bg-blue-500' },
@@ -379,7 +391,7 @@ export default function Dashboard() {
               <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">Top 5</span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 stagger stagger-tight">
               {followUpQueue.map((lead) => {
                 return (
                   <div
@@ -416,7 +428,7 @@ export default function Dashboard() {
           {/* Deal Stage Funnel Overview */}
           <div className="glass-panel rounded-2xl p-6">
             <h2 className="text-sm font-bold text-slate-900 mb-4">Pipeline Stage Velocity</h2>
-            <div className="space-y-3">
+            <div className="space-y-3 stagger stagger-tight">
               {statuses.map((s) => {
                 const count = pipelineCounts[s.key] || 0;
                 const pct = (count / maxPipeline) * 100;
@@ -427,7 +439,10 @@ export default function Dashboard() {
                       <span className="text-slate-900 font-mono font-bold">{count} deals</span>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full ${s.barColor}`} style={{ width: `${pct}%` }} />
+                      <div
+                        className={`meter-fill h-full rounded-full ${s.barColor}`}
+                        style={{ width: `${pct}%` }}
+                      />
                     </div>
                   </div>
                 );
@@ -449,7 +464,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger">
           {salesReps.map((rep, i) => {
             const initials = rep.name
               .split(' ')
@@ -457,7 +472,10 @@ export default function Dashboard() {
               .join('')
               .toUpperCase();
             return (
-              <div key={rep.id} className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-3">
+              <div
+                key={rep.id}
+                className="bg-slate-50/70 p-4 rounded-xl border border-slate-200/80 space-y-3 card-hover"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-2xs">

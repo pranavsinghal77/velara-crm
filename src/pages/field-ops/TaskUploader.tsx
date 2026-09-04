@@ -89,8 +89,8 @@ export default function TaskUploader({ taskId, onClose, onSuccess }: TaskUploade
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overlay-enter">
+      <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl modal-enter">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-blue-600 to-purple-600">
           <h2 className="text-lg font-bold text-white">Visual compliance check</h2>
           <button

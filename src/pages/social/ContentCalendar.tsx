@@ -155,11 +155,11 @@ export default function ContentCalendar({
       {/* ═══ SCHEDULE MODAL ════════════════════════════════ */}
       {showScheduleModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overlay-enter"
           onClick={() => setShowScheduleModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl w-80 p-6"
+            className="bg-white rounded-2xl shadow-2xl w-80 p-6 modal-enter"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">

@@ -258,9 +258,9 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
   }, [filteredItems, selectedIndex, onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-start justify-center pt-[12vh] p-4 animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-start justify-center pt-[12vh] p-4 overlay-enter">
       <div
-        className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-xl overflow-hidden flex flex-col max-h-[70vh] animate-in zoom-in-95 duration-150"
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-xl overflow-hidden flex flex-col max-h-[70vh] modal-enter"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Header */}
@@ -285,7 +285,7 @@ export default function CommandPalette({ onClose }: CommandPaletteProps) {
         </div>
 
         {/* Results List */}
-        <div className="overflow-y-auto p-2 space-y-1 flex-1">
+        <div className="overflow-y-auto p-2 space-y-1 flex-1 stagger stagger-tight">
           {filteredItems.length === 0 ? (
             <div className="py-12 text-center text-xs text-slate-400">
               No results found for &ldquo;<span className="font-semibold text-slate-600">{query}</span>&rdquo;

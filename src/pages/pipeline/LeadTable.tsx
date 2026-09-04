@@ -53,7 +53,7 @@ export default function LeadTable({
             <th className="p-3 font-semibold text-slate-600 text-right">ACTIONS</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="stagger stagger-tight">
           {paged.map((l) => {
             const days = daysSince(l.lastContact);
             const prediction = getPrediction(l.aiScore, l.status);

@@ -85,6 +85,7 @@ velara-crm/
 │   ├── lib/
 │   │   ├── api.ts            # the only place that talks HTTP
 │   │   ├── config.ts         # env-driven API URL and feature flags
+│   │   ├── motion.ts         # reduced-motion check, count-up hook
 │   │   └── realtime.ts       # authenticated socket.io client
 │   ├── store/useCrmStore.ts  # zustand store, optimistic writes with rollback
 │   ├── components/
@@ -118,6 +119,15 @@ back if the server rejects them.
 timezone (`APP_TIMEZONE`, default `Asia/Kolkata`). Fields like a reminder's
 "due today" flag are computed at read time, never stored, so they cannot go stale
 overnight.
+
+**Motion.** Durations, easings and every keyframe live in the Motion section of
+`src/index.css`; a component applies a class rather than picking its own curve, for
+the same reason pages do not pick their own gutter. Entrances use
+`animation-fill-mode: backwards` without exception — `forwards` leaves the final
+keyframe applied for good, and a lingering `transform` on the page wrapper would
+make it the containing block for the `position: fixed` modals that several pages
+render inside it. `prefers-reduced-motion` is honoured globally, with spinners and
+typing indicators exempted: a frozen progress indicator reads as a hung request.
 
 ---
 

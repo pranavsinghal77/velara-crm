@@ -226,7 +226,12 @@ export default function AIAssistant() {
             <>
               {/* Message List */}
               {messages.map((m) => (
-                <div key={m.id} className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+                <div
+                  key={m.id}
+                  className={`flex flex-col ${
+                    m.role === 'user' ? 'items-end anim-slide-right' : 'items-start anim-slide-left'
+                  }`}
+                >
                   <div
                     className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed shadow-2xs ${
                       m.role === 'user'
@@ -263,7 +268,12 @@ export default function AIAssistant() {
               {isChatLoading && (
                 <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-3.5 py-2.5 w-fit text-xs text-purple-700 shadow-2xs">
                   <div className="w-3.5 h-3.5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
-                  <span className="font-semibold animate-pulse">Gemini AI analyzing CRM pipeline...</span>
+                  <span className="font-semibold">Gemini is analysing your pipeline</span>
+                  <span className="typing" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
                 </div>
               )}
 

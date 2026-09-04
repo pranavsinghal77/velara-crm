@@ -368,7 +368,7 @@ export default function LeadPipeline() {
 
       {/* ═══ KANBAN VIEW ══════════════════════════════════════ */}
       {viewMode === 'kanban' ? (
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 overflow-x-auto pb-4 stagger">
           {KANBAN_STAGES.map((stage) => {
             const stageLeads = filtered.filter((l) => l.status === stage.id);
             const stageValue = sumLeadValueLakhs(stageLeads);
@@ -393,7 +393,7 @@ export default function LeadPipeline() {
                 </div>
 
                 {/* Lead Cards */}
-                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-320px)] pr-1">
+                <div className="flex-1 space-y-2.5 overflow-y-auto max-h-[calc(100vh-320px)] pr-1 stagger stagger-tight">
                   {stageLeads.length === 0 ? (
                     <div className="py-8 text-center text-xs text-slate-400 border-2 border-dashed border-slate-200 rounded-xl">
                       No leads in this stage
@@ -527,8 +527,8 @@ export default function LeadPipeline() {
       />
 
       {deleteId && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl border border-slate-200">
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 overlay-enter">
+          <div className="bg-white rounded-xl p-5 max-w-sm w-full space-y-4 shadow-xl border border-slate-200 modal-enter">
             <h3 className="font-bold text-slate-900 text-sm">Delete Lead</h3>
             <p className="text-xs text-slate-600">Are you sure you want to delete this lead from the pipeline and database?</p>
             <div className="flex justify-end gap-2 text-xs">

@@ -4,6 +4,7 @@ import { Bell, Search, Sparkles, LogOut } from 'lucide-react';
 import Sidebar from './Sidebar';
 import AIAssistant from './AIAssistant';
 import CommandPalette from './CommandPalette';
+import Toast from './Toast';
 import { useCrmStore } from '../store/useCrmStore';
 
 const pageTitles: Record<string, string> = {
@@ -89,12 +90,6 @@ export default function Layout() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  useEffect(() => {
-    if (!notice) return;
-    const id = setTimeout(() => setNotice(''), 2400);
-    return () => clearTimeout(id);
-  }, [notice]);
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar */}
@@ -171,7 +166,7 @@ export default function Layout() {
             </button>
 
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50">
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 anim-drop anim-drop-right">
                 <div className="px-4 py-2 border-b border-slate-100">
                   <p className="text-sm font-semibold text-slate-900">{user?.name}</p>
                   <p className="text-xs text-slate-500">{user?.email}</p>
@@ -205,26 +200,25 @@ export default function Layout() {
           paddingTop: 'var(--topbar-h)',
         }}
       >
-        {notice ? (
-          <div className="page-shell pt-4">
-            <div
-              role="status"
-              className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs font-medium text-blue-700"
-            >
-              {notice}
-            </div>
-          </div>
-        ) : null}
-
         {/*
           The app's only page-level padding. Pages render their sections and
           nothing else — nine of them used to add another `p-6` here, which is
           why content shifted horizontally depending on which page you were on.
         */}
-        <main className="page-shell py-6">
+        {/*
+          Keyed on the pathname so the entrance replays on every route change,
+          and on the pathname *only*: keying on the whole location would
+          remount Settings whenever its `?tab=` changed and throw away what the
+          reader was in the middle of.
+        */}
+        <main key={location.pathname} className="page-shell py-6 page-enter">
           <Outlet />
         </main>
       </div>
+
+      {/* Transient status. Owns its own enter and exit, and unmounts itself
+          only once the exit has finished. */}
+      <Toast message={notice} onDismiss={() => setNotice('')} />
 
       {/* ── Floating AI Assistant (visible on all pages) ──── */}
       <AIAssistant />

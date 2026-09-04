@@ -171,8 +171,8 @@ export default function UsersTab() {
       
       {/* ═══ INVITE MODAL ══════════════════════════════════ */}
       {inviteModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setInviteModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overlay-enter" onClick={() => setInviteModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md modal-enter" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-base font-bold text-slate-900">Invite Team Member</h3>
               <button onClick={() => setInviteModal(false)} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"><X className="w-4 h-4" /></button>

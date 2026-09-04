@@ -369,8 +369,8 @@ export default function Support() {
 
       {/* Escalation Dossier Modal */}
       {showDossierModal && activeTicket && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overlay-enter">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-xl w-full p-6 space-y-4 modal-enter">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
                 <Zap size={20} className="text-orange-500 fill-orange-500" />
@@ -429,8 +429,8 @@ export default function Support() {
 
       {/* Create Ticket Modal */}
       {showCreate ? (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-xl bg-white border border-slate-200 shadow-xl p-5 space-y-4">
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overlay-enter">
+          <div className="w-full max-w-md rounded-xl bg-white border border-slate-200 shadow-xl p-5 space-y-4 modal-enter">
             <h3 className="text-lg font-semibold text-slate-900">Create Support Incident Ticket</h3>
             <div>
               <label className="text-xs font-semibold text-slate-600">Client / Account Name</label>

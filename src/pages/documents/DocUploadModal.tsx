@@ -42,8 +42,8 @@ export default function DocUploadModal({
   if (!showUpload) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overlay-enter">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 overflow-hidden modal-enter">
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
           <h3 className="text-base font-bold text-slate-900">Upload Document</h3>
           <button onClick={closeUpload} className="p-1 rounded-lg hover:bg-slate-100 text-slate-500">

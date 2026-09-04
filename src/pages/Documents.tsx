@@ -249,8 +249,8 @@ IFSC: HDFC0000123 | UPI: velara@hdfcbank
 
       {/* ═══ GST PROFORMA QUOTATION MODAL ═════════════════════ */}
       {showQuoteModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overlay-enter">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden modal-enter">
             {/* Modal Header */}
             <div className="px-6 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">

@@ -109,7 +109,7 @@ export default function Login() {
       {/* Right panel */}
       <div className="w-full md:w-2/5 bg-white flex flex-col justify-center px-8 py-12 md:px-12">
         <form
-          className="w-full max-w-sm mx-auto flex flex-col gap-6"
+          className="w-full max-w-sm mx-auto flex flex-col gap-6 stagger"
           onSubmit={(e) => {
             e.preventDefault();
             void handleLogin();
@@ -130,7 +130,7 @@ export default function Login() {
           {error && (
             <div
               role="alert"
-              className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"
+              className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg anim-rise"
             >
               <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
               <span className="text-red-600 text-sm flex-1">{error}</span>
