@@ -340,6 +340,8 @@ List endpoints return `{data, nextCursor}`. Errors return
 | `npm run db:migrate` | Create and apply a migration (development) |
 | `npm run db:seed` | Load demo data. `--reset` clears the demo org first |
 | `npm run db:studio` | Prisma Studio |
+| `npm run db:set-password` | Point `DATABASE_URL` at a project, or rotate its password. Prompts with echo off, finds the right pooler host, proves the connection before writing. |
+| `npm run health` | Read-only sweep of every mounted surface; exits non-zero on failure. Set `HEALTH_EMAIL` / `HEALTH_PASSWORD` to include the authenticated reads. |
 
 ---
 
