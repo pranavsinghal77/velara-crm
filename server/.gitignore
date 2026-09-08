@@ -1,9 +1,13 @@
 node_modules
-# Keep environment variables out of version control
-.env
+# Keep environment variables out of version control.
+#
+# Ignore every .env variant and re-admit only the example, rather than adding
+# suffixes to a list as they turn up. That list was how `.env.bak` slipped
+# through: db:set-password writes it before overwriting .env, so it holds the
+# *previous* DATABASE_URL, password and all, and nothing was ignoring it.
+# Committing a file with a database password in it is how commit decb964
+# leaked the last one.
+.env*
+!.env.example
 
 /generated/prisma
-
-# Timestamped .env backups; these contain real credentials.
-.env.backup-*
-.env.*.local

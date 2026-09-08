@@ -91,6 +91,41 @@ describe('AnimatedNumber', () => {
     vi.useRealTimers();
   });
 
+  it('does not animate when the document is hidden', () => {
+    // requestAnimationFrame does not fire in a page that is not painting, so a
+    // count-up there would sit at zero forever. Observed for real: the
+    // dashboard hero read "your pipeline has Rs 15.4L" directly above four KPI
+    // cards all showing 0.
+    stubReducedMotion(false);
+    vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+
+    render(<AnimatedNumber value={154} />);
+
+    expect(screen.getByText('154')).toBeInTheDocument();
+  });
+
+  it('lands on the value when frames stop arriving mid-count', () => {
+    stubReducedMotion(false);
+    vi.useFakeTimers();
+
+    // rAF that accepts callbacks and never calls them, which is what a
+    // paused compositor looks like from here.
+    vi.stubGlobal('requestAnimationFrame', () => 1);
+    vi.stubGlobal('cancelAnimationFrame', () => {});
+
+    render(<AnimatedNumber value={154} durationMs={400} />);
+    expect(screen.getByText('0')).toBeInTheDocument();
+
+    // The setTimeout backstop still fires where rAF did not.
+    act(() => {
+      vi.advanceTimersByTime(900);
+    });
+
+    expect(screen.getByText('154')).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
   it('passes a non-finite value straight through instead of counting to NaN', () => {
     stubReducedMotion(false);
     render(<AnimatedNumber value={Number.NaN} />);

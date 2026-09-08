@@ -301,11 +301,15 @@ async function main() {
   // A fresh project has no tables, so the migrations are the obvious next
   // step. Offered rather than run: it writes to a database, and that should be
   // a decision, not a side effect of setting a password.
-  const status = spawnSync('npx', ['prisma', 'migrate', 'status'], {
-    cwd: path.resolve(__dirname, '..'),
-    encoding: 'utf8',
-    shell: process.platform === 'win32',
-  });
+  // `npx.cmd` rather than `shell: true`. Node deprecates passing args through
+  // a shell (DEP0190) because they are concatenated rather than escaped, and
+  // it prints a warning that has no business appearing in the output of a tool
+  // whose whole job is to be trustworthy about credentials.
+  const status = spawnSync(
+    process.platform === 'win32' ? 'npx.cmd' : 'npx',
+    ['prisma', 'migrate', 'status'],
+    { cwd: path.resolve(__dirname, '..'), encoding: 'utf8' }
+  );
 
   const pending = /migrations have not yet been applied|not yet been applied|No migration found/i.test(
     `${status.stdout ?? ''}${status.stderr ?? ''}`
