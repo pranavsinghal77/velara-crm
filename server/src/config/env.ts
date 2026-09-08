@@ -90,6 +90,9 @@ const schema = z.object({
    */
   SOCIAL_INSIGHTS_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(1_440).default(15),
 
+  /** Apollo.io API base. Overridable so tests can point it at a stub. */
+  APOLLO_API_BASE: z.string().default('https://api.apollo.io'),
+
   GEMINI_API_KEY: z.string().default(''),
   /**
    * Model ids are pinned, not aliased.

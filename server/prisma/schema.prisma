@@ -132,6 +132,7 @@ model Organization {
   apiKeys              ApiKey[]
   mcpConnections       McpConnection[]
   aiProviderConfig     AiProviderConfig?
+  apolloConfig         ApolloConfig?
   webhooks             WebhookEndpoint[]
   attendance           AttendanceRecord[]
   documents            Document[]
@@ -219,6 +220,10 @@ model Lead {
   /// database can aggregate pipeline value without parsing strings.
   budgetLakhs      Float      @default(0)
   lastContactAt    DateTime?
+  /// External id from the system this lead was imported from (e.g. an Apollo
+  /// person id). Null for hand-created leads. Lets a re-run of an importer
+  /// recognise a person it already pulled in rather than duplicating them.
+  sourceRef        String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -234,6 +239,7 @@ model Lead {
   @@index([orgId, isHot])
   @@index([orgId, ownerId])
   @@index([orgId, email])
+  @@index([orgId, source, sourceRef])
 }
 
 model Message {
@@ -543,6 +549,26 @@ model AiProviderConfig {
   monthlyBudgetPaise Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+}
+
+/// Apollo.io lead-sourcing credentials, one per tenant. The key is stored
+/// encrypted and never returned; the settings screen sees only whether a key
+/// is present and a masked hint. Sourcing consumes Apollo credits on the
+/// tenant's own account, so the key is theirs, not the platform's.
+model ApolloConfig {
+  id             String    @id @default(uuid())
+  orgId          String    @unique
+  apiKeyEnc      String
+  enabled        Boolean   @default(true)
+  /// Default owner for imported leads; null assigns them to the importer.
+  defaultOwnerId String?
+  lastImportAt   DateTime?
+  /// Running total imported through Apollo, for the settings summary.
+  importedTotal  Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   org Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
 }

@@ -249,6 +249,16 @@ A background worker publishes scheduled posts when their time arrives, keeps tok
 alive and refreshes insights. Each due post is claimed with a conditional update
 before any provider call, so two API instances cannot both publish it.
 
+### Lead sourcing (Apollo.io)
+Search Apollo's contact database from inside the CRM and import matches as leads.
+Each workspace stores its own Apollo API key (encrypted with `ENCRYPTION_KEY`), so
+sourcing bills against the tenant's own Apollo credits. Import goes through the one
+lead-write service, so plan limits, metering and workflow triggers apply exactly as
+for a hand-typed lead — a bulk import cannot bypass the plan. Apollo returns a locked
+placeholder email for any contact you have not revealed with a credit; those are
+stored with an empty email and an `email-pending` tag rather than a fake address, and
+re-importing the same person is a no-op (matched on the Apollo id in `sourceRef`).
+
 ### Field operations
 Campaigns, tasks and photo-based compliance checks. A submitted photo is genuinely
 sent to a vision model; the verdict is written by the server, and a task stays
@@ -308,6 +318,15 @@ All routes are under `/api`. Everything except `/api/auth/login`, `/refresh` and
 | GET | `/social/insights` | Stored figures only; never calls a provider |
 | POST | `/social/insights/refresh` | Fetches now, subject to the staleness floor |
 | GET | `/social/ideas` | Suggestions from the tenant's own best posts |
+
+### Apollo.io lead sourcing
+| Method | Path | Role |
+|---|---|---|
+| GET | `/apollo/config` | Viewer. Whether a key is set, import totals |
+| PUT | `/apollo/config` | Admin. Store or clear the workspace's Apollo key |
+| POST | `/apollo/test` | Admin. Prove the key works with a 1-result search |
+| POST | `/apollo/search` | Sales. Preview candidates; flags duplicates and locked emails |
+| POST | `/apollo/import` | Sales. Re-runs the search and imports the chosen person ids |
 
 ### AI
 `GET /ai/status`, and `POST` to `/ai/smart-reply`, `/ai/sentiment-analysis`,

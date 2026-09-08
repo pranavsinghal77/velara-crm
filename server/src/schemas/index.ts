@@ -657,3 +657,45 @@ export type UpdateDocumentInput = z.infer<typeof updateDocumentSchema>;
 export const testWorkflowSchema = z.object({
   leadId: z.string().uuid().optional(),
 });
+
+// --- Apollo.io lead sourcing ------------------------------------------------
+
+export const updateApolloConfigSchema = z
+  .object({
+    // `null` clears the stored key; a string sets it. Apollo keys are long
+    // hex-ish tokens, so a minimum length rejects an obviously truncated paste.
+    apiKey: z.string().trim().min(20).max(512).nullable().optional(),
+    enabled: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'No updatable fields provided' });
+export type UpdateApolloConfigInput = z.infer<typeof updateApolloConfigSchema>;
+
+/**
+ * Apollo people-search filters. Every field is optional — an empty search is
+ * valid and returns Apollo's broadest page — but the shapes are constrained so
+ * a malformed filter is rejected here rather than by Apollo with a 422.
+ */
+export const apolloSearchSchema = z.object({
+  titles: z.array(z.string().trim().min(1).max(120)).max(50).optional(),
+  locations: z.array(z.string().trim().min(1).max(120)).max(50).optional(),
+  organizationDomains: z.array(z.string().trim().min(1).max(200)).max(50).optional(),
+  // Apollo's employee-range format is "min,max", e.g. "1,10" or "201,500".
+  employeeRanges: z
+    .array(z.string().regex(/^\d+,\d+$/, 'Expected "min,max", e.g. "1,10"'))
+    .max(20)
+    .optional(),
+  keywords: z.string().trim().max(300).optional(),
+  page: z.coerce.number().int().min(1).max(500).optional(),
+  perPage: z.coerce.number().int().min(1).max(100).optional(),
+});
+export type ApolloSearchInput = z.infer<typeof apolloSearchSchema>;
+
+/**
+ * Import re-runs the search (so the data provably comes from Apollo) and
+ * creates only the person ids named here. The filters must match the search
+ * that produced the ids, so the same page is fetched.
+ */
+export const apolloImportSchema = apolloSearchSchema.extend({
+  personIds: z.array(z.string().trim().min(1).max(64)).min(1).max(100),
+});
+export type ApolloImportInput = z.infer<typeof apolloImportSchema>;
