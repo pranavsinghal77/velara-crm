@@ -220,6 +220,41 @@ async function main() {
     message: 'Still waiting on that quote.',
   });
 
+  // These two integrations report readiness rather than doing external work: a
+  // server with no Apollo key or no Azure app is healthy, it just says so. So
+  // the check is that the config/status endpoint answers 200, and the response
+  // is summarised so the operator can see whether credentials are present.
+  console.log('\nApollo.io lead sourcing');
+  {
+    const { res, ms, err } = await timed(() =>
+      fetch(`${API}/apollo/config`, { headers: { Authorization: `Bearer ${token}` } })
+    );
+    if (!res) report(false, 'config', `unreachable: ${err}`, ms);
+    else {
+      const d = (await res.json()) as { configured?: boolean };
+      report(res.ok, 'config', `HTTP ${res.status} ${d.configured ? 'key set' : 'no key (feature idle)'}`, ms);
+    }
+  }
+
+  console.log('\nMicrosoft 365');
+  {
+    const { res, ms, err } = await timed(() =>
+      fetch(`${API}/microsoft/status`, { headers: { Authorization: `Bearer ${token}` } })
+    );
+    if (!res) report(false, 'status', `unreachable: ${err}`, ms);
+    else {
+      const d = (await res.json()) as { configured?: boolean; connection?: unknown };
+      report(
+        res.ok,
+        'status',
+        `HTTP ${res.status} ${d.configured ? 'app configured' : 'no Azure app (feature idle)'}${
+          d.connection ? ', connected' : ''
+        }`,
+        ms
+      );
+    }
+  }
+
   console.log('');
   console.log(`${passed} passed, ${failures.length} failed`);
   if (failures.length) {
