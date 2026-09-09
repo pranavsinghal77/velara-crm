@@ -1,22 +1,5 @@
-import { useMemo, useState } from 'react';
-import {
-  Workflow,
-  Sparkles,
-  Play,
-  Pause,
-  Plus,
-  Clock,
-  Target,
-  Send,
-  Bell,
-  ArrowRight,
-  CheckCircle2,
-  Zap,
-  MessageSquare,
-  Mail,
-  Phone,
-  Filter,
-} from 'lucide-react';
+import { useState } from 'react';
+import { Play, Pause, Plus, Clock, Target, Bell, CheckCircle2, Zap } from 'lucide-react';
 import { useCrmStore } from '../store/useCrmStore';
 
 type FlowState = 'Running' | 'Paused';
@@ -116,7 +99,7 @@ export default function Workflows() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-stack">
       {notice && (
         <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700 flex items-center justify-between shadow-2xs">
           <span>{notice}</span>
@@ -130,12 +113,12 @@ export default function Workflows() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">Workflow Automation Studio</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Workflow Automation Studio</h1>
             <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800">
               {flows.length} Active Sequences
             </span>
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Trigger-Action automated sequences across WhatsApp, VoIP, lead distribution & task queues.
           </p>
         </div>

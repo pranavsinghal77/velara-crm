@@ -44,7 +44,7 @@ export const PLATFORM_ANALYTICS = [
   { p: 'FB' as Platform,  label: 'Facebook',   followers: 3240, pct: 100, eng: '3.2%', bg: 'bg-indigo-500' },
   { p: 'IG' as Platform,  label: 'Instagram',  followers: 4200, pct: 100, eng: '6.8%', bg: 'bg-pink-500'   },
   { p: 'LI' as Platform,  label: 'LinkedIn',   followers: 2800, pct: 87,  eng: '4.1%', bg: 'bg-blue-600'   },
-  { p: 'X' as Platform,   label: 'X (Twitter)',followers: 1760, pct: 54,  eng: '5.3%', bg: 'bg-gray-800'   },
+  { p: 'X' as Platform,   label: 'X (Twitter)',followers: 1760, pct: 54,  eng: '5.3%', bg: 'bg-slate-800'   },
   { p: 'WA' as Platform,  label: 'WhatsApp',   followers: 400,  pct: 12,  eng: '72%',  bg: 'bg-green-500'  },
 ];
 

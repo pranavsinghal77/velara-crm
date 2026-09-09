@@ -89,20 +89,20 @@ export default function Dialer({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       {/* Dialer header */}
-      <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-4 flex items-center justify-between">
+      <div className="bg-gradient-to-r from-slate-800 to-slate-900 p-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Phone className="w-4 h-4 text-white" />
           <span className="text-white font-semibold text-sm">Smart Dialer</span>
         </div>
-        <div className="flex bg-gray-700 rounded-lg p-0.5">
+        <div className="flex bg-slate-700 rounded-lg p-0.5">
           {(['VoIP', 'GSM'] as CallType[]).map((t) => (
             <button
               key={t}
               onClick={() => setCallType(t)}
               className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${
-                callType === t ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-white'
+                callType === t ? 'bg-blue-500 text-white' : 'text-slate-400 hover:text-white'
               }`}
             >
               {t}
@@ -116,8 +116,8 @@ export default function Dialer({
         <div className="p-4 flex flex-col gap-4">
           {/* Lead search */}
           <div className="relative">
-            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
-              <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <div className="flex items-center gap-2 border border-slate-200 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
               <input
                 value={searchQuery}
                 onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true); }}
@@ -128,19 +128,19 @@ export default function Dialer({
               />
             </div>
             {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-40 overflow-y-auto">
                 {suggestions.map((l) => (
                   <button
                     key={l.id}
                     onMouseDown={() => handleSelectLead(l)}
-                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-50 text-left"
+                    className="w-full flex items-center gap-3 p-3 hover:bg-slate-50 text-left"
                   >
                     <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                       {l.name.charAt(0)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">{l.name}</p>
-                      <p className="text-xs text-gray-400">{l.phone}</p>
+                      <p className="text-sm font-medium text-slate-800 truncate">{l.name}</p>
+                      <p className="text-xs text-slate-400">{l.phone}</p>
                     </div>
                     <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 ${sourceBadgeColor[l.source] ?? ''}`}>
                       {l.source}
@@ -152,15 +152,15 @@ export default function Dialer({
           </div>
 
           {/* Number display */}
-          <div className="bg-gray-50 rounded-xl p-4 text-center border-2 border-gray-200 min-h-16 flex flex-col items-center justify-center gap-1">
+          <div className="bg-slate-50 rounded-xl p-4 text-center border-2 border-slate-200 min-h-16 flex flex-col items-center justify-center gap-1">
             {activeLead ? (
               <>
-                <span className="text-base font-semibold text-gray-800">{activeLead.name}</span>
-                <span className="text-sm font-mono text-gray-500 tracking-wider">{dialNumber}</span>
+                <span className="text-base font-semibold text-slate-800">{activeLead.name}</span>
+                <span className="text-sm font-mono text-slate-500 tracking-wider">{dialNumber}</span>
               </>
             ) : (
-              <span className="text-2xl font-mono text-gray-800 tracking-wider">
-                {dialNumber || <span className="text-gray-300">—</span>}
+              <span className="text-2xl font-mono text-slate-800 tracking-wider">
+                {dialNumber || <span className="text-slate-300">—</span>}
               </span>
             )}
           </div>
@@ -171,7 +171,7 @@ export default function Dialer({
               <button
                 key={k}
                 onClick={() => handleDial(k)}
-                className="aspect-square rounded-xl bg-gray-50 hover:bg-blue-50 hover:text-blue-600 font-semibold text-lg transition-colors border border-gray-100 flex items-center justify-center"
+                className="aspect-square rounded-xl bg-slate-50 hover:bg-blue-50 hover:text-blue-600 font-semibold text-lg transition-colors border border-slate-100 flex items-center justify-center"
               >
                 {k}
               </button>
@@ -182,9 +182,9 @@ export default function Dialer({
           <div className="flex gap-2">
             <button
               onClick={handleBackspace}
-              className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors"
+              className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
             >
-              <Delete className="w-4 h-4 text-gray-600" />
+              <Delete className="w-4 h-4 text-slate-600" />
             </button>
             <button
               onClick={startCall}
@@ -194,8 +194,8 @@ export default function Dialer({
               <Phone className="w-4 h-4" />
               Call
             </button>
-            <button onClick={handleClear} className="flex-1 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg flex items-center justify-center transition-colors">
-              <X className="w-4 h-4 text-gray-600" />
+            <button onClick={handleClear} className="flex-1 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors">
+              <X className="w-4 h-4 text-slate-600" />
             </button>
           </div>
         </div>

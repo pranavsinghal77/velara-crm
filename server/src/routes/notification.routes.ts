@@ -1,15 +1,28 @@
 import { Router } from 'express';
 import {
-  getNotifications,
   createNotification,
-  markNotificationRead,
+  getNotifications,
   markAllNotificationsRead,
+  markNotificationRead,
 } from '../controllers/notification.controller';
+import { requireManager } from '../middlewares/auth';
+import { writeLimiter } from '../middlewares/rateLimits';
+import { validate } from '../middlewares/validate';
+import { createNotificationSchema, idParam, paginationQuery } from '../schemas';
 
 const router = Router();
 
-router.route('/').get(getNotifications).post(createNotification);
-router.route('/read-all').put(markAllNotificationsRead);
-router.route('/:id/read').put(markNotificationRead);
+router.get('/', validate(paginationQuery, 'query'), getNotifications);
+
+router.post(
+  '/',
+  writeLimiter,
+  requireManager,
+  validate(createNotificationSchema),
+  createNotification
+);
+
+router.put('/read-all', writeLimiter, markAllNotificationsRead);
+router.put('/:id/read', writeLimiter, validate(idParam, 'params'), markNotificationRead);
 
 export default router;

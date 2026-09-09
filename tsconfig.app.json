@@ -16,13 +16,16 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
-    /* Linting */
-    "strict": false,
-    "noImplicitAny": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "erasableSyntaxOnly": true,
+    /* Correctness. `strict: false` + `noImplicitAny: false` made the previous
+       `tsc -b` in the build script close to a no-op. */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "erasableSyntaxOnly": true,
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"]

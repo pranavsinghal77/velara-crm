@@ -1,8 +1,14 @@
 import { Router } from 'express';
-import { getOverview } from '../controllers/analytics.controller';
+import {
+  getLeaderboard,
+  getOverview,
+  getTrend,
+} from '../controllers/analytics.controller';
 
 const router = Router();
 
 router.get('/overview', getOverview);
+router.get('/trend', getTrend);
+router.get('/leaderboard', getLeaderboard);
 
 export default router;

@@ -1,55 +1,129 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { prisma } from '../config/db';
+import { auth } from '../middlewares/auth';
+import { validatedParams } from '../middlewares/validate';
+import type {
+  CreateCampaignInput,
+  CreateFieldTaskInput,
+  IdParam,
+  UpdateFieldTaskInput,
+} from '../schemas';
+import { badRequest, notFound } from '../utils/httpError';
+import { serializeCampaign, serializeFieldTask } from '../utils/serializers';
 
-export const getCampaigns = async (req: Request, res: Response) => {
+/** GET /api/field-campaigns */
+export async function getCampaigns(req: Request, res: Response) {
+  const { orgId } = auth(req);
+
   const campaigns = await prisma.fieldCampaign.findMany({
-    include: { tasks: true },
+    where: { orgId },
+    include: { tasks: { orderBy: { createdAt: 'asc' } } },
     orderBy: { startDate: 'desc' },
+    take: 100,
   });
-  res.json(campaigns);
-};
 
-export const createCampaign = async (req: Request, res: Response) => {
-  const { name, description, startDate, endDate, budget, status } = req.body;
+  res.json({ data: campaigns.map(serializeCampaign) });
+}
+
+/** POST /api/field-campaigns - Manager and above. */
+export async function createCampaign(req: Request, res: Response) {
+  const { orgId } = auth(req);
+  const input = req.body as CreateCampaignInput;
+
+  const startDate = input.startDate ?? new Date();
+  const endDate = input.endDate ?? new Date(startDate.getTime() + 30 * 86_400_000);
+
   const campaign = await prisma.fieldCampaign.create({
     data: {
-      name,
-      description,
-      startDate: startDate ? new Date(startDate) : new Date(),
-      endDate: endDate ? new Date(endDate) : new Date(Date.now() + 30 * 86400000),
-      budget: budget ? parseFloat(budget) : 0,
-      status: status || 'Active',
+      orgId,
+      name: input.name,
+      description: input.description,
+      startDate,
+      endDate,
+      budget: input.budget,
+      status: input.status,
     },
     include: { tasks: true },
   });
-  res.status(201).json(campaign);
-};
 
-export const createTask = async (req: Request, res: Response) => {
-  const { campaignId, title, location, status, assignedToId } = req.body;
+  res.status(201).json(serializeCampaign(campaign));
+}
+
+/** POST /api/field-campaigns/tasks - Manager and above. */
+export async function createTask(req: Request, res: Response) {
+  const { orgId } = auth(req);
+  const input = req.body as CreateFieldTaskInput;
+
+  const campaign = await prisma.fieldCampaign.findFirst({
+    where: { id: input.campaignId, orgId },
+    select: { id: true },
+  });
+  if (!campaign) throw badRequest('campaignId does not reference one of your campaigns');
+
+  if (input.assignedToId) {
+    const member = await prisma.user.findFirst({
+      where: { id: input.assignedToId, orgId },
+      select: { id: true },
+    });
+    if (!member) throw badRequest('assignedToId must be a member of your organisation');
+  }
+
   const task = await prisma.fieldTask.create({
     data: {
-      campaignId,
-      title,
-      location,
-      status: status || 'Pending',
-      assignedToId,
+      orgId,
+      campaignId: campaign.id,
+      title: input.title,
+      location: input.location,
+      status: input.status,
+      assignedToId: input.assignedToId ?? null,
     },
   });
-  res.status(201).json(task);
-};
 
-export const updateTask = async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const { status, uploadedImageUrl, aiComplianceScore, aiFeedback } = req.body;
+  res.status(201).json(serializeFieldTask(task));
+}
+
+/**
+ * PUT /api/field-campaigns/tasks/:id
+ *
+ * Note what is *not* updatable here: `aiComplianceScore`, `aiFeedback` and
+ * `aiVerified` are written only by the server after a real vision call. A
+ * field agent cannot submit their own passing score.
+ */
+export async function updateTask(req: Request, res: Response) {
+  const { orgId } = auth(req);
+  const { id } = validatedParams<IdParam>(req);
+  const input = req.body as UpdateFieldTaskInput;
+
+  const existing = await prisma.fieldTask.findFirst({
+    where: { id, orgId },
+    select: { id: true },
+  });
+  if (!existing) throw notFound('Task not found');
+
+  if (input.assignedToId) {
+    const member = await prisma.user.findFirst({
+      where: { id: input.assignedToId, orgId },
+      select: { id: true },
+    });
+    if (!member) throw badRequest('assignedToId must be a member of your organisation');
+  }
+
   const task = await prisma.fieldTask.update({
     where: { id },
     data: {
-      ...(status && { status }),
-      ...(uploadedImageUrl && { uploadedImageUrl }),
-      ...(aiComplianceScore !== undefined && { aiComplianceScore: parseFloat(aiComplianceScore) }),
-      ...(aiFeedback && { aiFeedback }),
+      ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.uploadedImageUrl !== undefined
+        ? {
+            uploadedImageUrl: input.uploadedImageUrl,
+            // A new photo invalidates any previous verdict.
+            aiVerified: false,
+            aiComplianceScore: null,
+            aiFeedback: null,
+          }
+        : {}),
+      ...(input.assignedToId !== undefined ? { assignedToId: input.assignedToId } : {}),
     },
   });
-  res.json(task);
-};
+
+  res.json(serializeFieldTask(task));
+}

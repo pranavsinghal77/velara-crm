@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Credential notes kept locally. This project has already leaked a database
+# password through a committed file once (see commit decb964, server/test_db.js),
+# so anything holding a credential is ignored by name rather than by memory.
+CREDENTIALS.txt
+credentials.txt
+*.credentials
+*.secrets.txt

@@ -55,6 +55,6 @@ export const catBadge: Record<string, string> = {
   Proposals:     'bg-amber-100 text-amber-700',
   'KYC Documents': 'bg-purple-100 text-purple-700',
   Reports:       'bg-green-100 text-green-700',
-  Other:         'bg-gray-100 text-gray-600',
+  Other:         'bg-slate-100 text-slate-600',
 };
 
