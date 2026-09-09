@@ -133,6 +133,7 @@ model Organization {
   mcpConnections       McpConnection[]
   aiProviderConfig     AiProviderConfig?
   apolloConfig         ApolloConfig?
+  microsoftConnections MicrosoftConnection[]
   webhooks             WebhookEndpoint[]
   attendance           AttendanceRecord[]
   documents            Document[]
@@ -164,7 +165,7 @@ model User {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  org           Organization       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  org           Organization         @relation(fields: [orgId], references: [id], onDelete: Cascade)
   ownedLeads    Lead[]
   messages      Message[]
   reminders     Reminder[]
@@ -172,6 +173,7 @@ model User {
   fieldTasks    FieldTask[]
   refreshTokens RefreshToken[]
   attendance    AttendanceRecord[]
+  microsoft     MicrosoftConnection?
 
   @@index([orgId])
   @@index([orgId, isActive])
@@ -890,4 +892,62 @@ model SocialAccountMetric {
   org        Organization     @relation(fields: [orgId], references: [id], onDelete: Cascade)
 
   @@index([orgId, fetchedAt])
+}
+
+/// Microsoft 365 connection, one per CRM user. Holds the OAuth grant that lets
+/// the app send Outlook mail, create Teams meetings and manage the calendar as
+/// that user. Tokens are encrypted; the access token is short-lived and
+/// refreshed from the stored refresh token (offline_access scope).
+model MicrosoftConnection {
+  id              String                    @id @default(uuid())
+  orgId           String
+  userId          String                    @unique
+  /// The Microsoft/Entra user id (Graph `id`), stable across email changes.
+  microsoftUserId String
+  /// The connected mailbox address (Graph `mail` or `userPrincipalName`).
+  email           String
+  displayName     String?
+  accessTokenEnc  String
+  refreshTokenEnc String?
+  expiresAt       DateTime?
+  /// Scopes Microsoft actually granted, which can be fewer than requested.
+  scopes          String[]                  @default([])
+  status          MicrosoftConnectionStatus @default(Connected)
+  statusDetail    String?
+  lastUsedAt      DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  org  Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([expiresAt])
+}
+
+enum MicrosoftConnectionStatus {
+  Connected
+  /// Token expired and the refresh failed, or no refresh token was granted.
+  Expired
+  /// The grant was revoked (user removed the app, or an admin did).
+  Revoked
+  /// The last Graph call failed for a reason other than auth.
+  Error
+}
+
+/// Short-lived OAuth state for the Microsoft flow, so a callback can be tied
+/// to the tenant and user who began it. Single-use and quick to expire.
+model MicrosoftOAuthState {
+  id           String    @id @default(uuid())
+  state        String    @unique
+  orgId        String
+  userId       String
+  /// PKCE verifier — Microsoft recommends PKCE even for confidential clients.
+  codeVerifier String
+  redirectTo   String?
+  expiresAt    DateTime
+  consumedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([expiresAt])
 }

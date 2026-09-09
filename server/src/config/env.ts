@@ -90,6 +90,15 @@ const schema = z.object({
    */
   SOCIAL_INSIGHTS_MAX_AGE_MINUTES: z.coerce.number().int().min(1).max(1_440).default(15),
 
+  /* Microsoft 365 (Outlook mail, Teams meetings, calendar). One Azure app
+     registration; blank means the feature reports itself unavailable rather
+     than pretending to be connected. */
+  MS_CLIENT_ID: z.string().default(''),
+  MS_CLIENT_SECRET: z.string().default(''),
+  /** Azure AD tenant: 'common' (any work/personal), 'organizations', or a
+      specific tenant id to lock sign-in to one directory. */
+  MS_TENANT: z.string().default('common'),
+
   /** Apollo.io API base. Overridable so tests can point it at a stub. */
   APOLLO_API_BASE: z.string().default('https://api.apollo.io'),
 

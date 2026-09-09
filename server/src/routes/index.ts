@@ -2,6 +2,8 @@ import { Router } from 'express';
 import { requireAuth } from '../middlewares/auth';
 import aiRoutes from './ai.routes';
 import apolloRoutes from './apollo.routes';
+import microsoftRoutes from './microsoft.routes';
+import microsoftCallbackRoutes from './microsoftCallback.routes';
 import attendanceRoutes from './attendance.routes';
 import documentRoutes from './document.routes';
 import workflowRoutes from './workflow.routes';
@@ -34,6 +36,10 @@ router.use('/mcp', mcpRoutes);
 // `state` issued when the flow began is what authenticates it.
 router.use('/social', socialCallbackRoutes);
 
+// The Microsoft OAuth return leg, also before the auth guard for the same
+// reason: the provider navigates the browser here with no session header.
+router.use('/microsoft', microsoftCallbackRoutes);
+
 // Everything below this line requires a valid access token. Mounting the
 // guard once, here, means a newly added route cannot be forgotten and left
 // public, which is how the previous build shipped with every endpoint open.
@@ -53,6 +59,7 @@ router.use('/attendance', attendanceRoutes);
 router.use('/documents', documentRoutes);
 router.use('/workflows', workflowRoutes);
   router.use('/apollo', apolloRoutes);
+  router.use('/microsoft', microsoftRoutes);
 
 // Cross-tenant operator console. Gated again inside by requirePlatformAdmin.
 router.use('/platform', platformRoutes);

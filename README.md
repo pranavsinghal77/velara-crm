@@ -259,6 +259,18 @@ placeholder email for any contact you have not revealed with a credit; those are
 stored with an empty email and an `email-pending` tag rather than a fake address, and
 re-importing the same person is a no-op (matched on the Apollo id in `sourceRef`).
 
+### Microsoft 365
+Each user connects their own Outlook account by OAuth (single-use `state`, PKCE),
+after which the CRM can send Outlook mail, create Teams meetings and read/manage the
+calendar as that user. Tokens are encrypted and refreshed from the stored refresh
+token (`offline_access` scope), and the callback is mounted ahead of the auth guard
+because Microsoft returns the browser with no session header. Calendar times cross
+the wire as a local date-time plus a separate IANA timezone, so a meeting lands where
+it was meant to rather than an offset out; email defaults to plain text so a message
+with angle brackets is never silently rendered as markup. Needs one Azure app
+registration (`MS_CLIENT_ID` / `MS_CLIENT_SECRET`); until those are set, the feature
+reports itself unavailable rather than pretending to be connected.
+
 ### Field operations
 Campaigns, tasks and photo-based compliance checks. A submitted photo is genuinely
 sent to a vision model; the verdict is written by the server, and a task stays
@@ -327,6 +339,18 @@ All routes are under `/api`. Everything except `/api/auth/login`, `/refresh` and
 | POST | `/apollo/test` | Admin. Prove the key works with a 1-result search |
 | POST | `/apollo/search` | Sales. Preview candidates; flags duplicates and locked emails |
 | POST | `/apollo/import` | Sales. Re-runs the search and imports the chosen person ids |
+
+### Microsoft 365 (Outlook mail, Teams meetings, calendar)
+| Method | Path | Role |
+|---|---|---|
+| GET | `/microsoft/status` | Viewer. Whether configured, and the caller's connection |
+| POST | `/microsoft/connect` | Returns the Microsoft consent URL |
+| GET | `/microsoft/callback` | Unauthenticated; proven by single-use `state` |
+| DELETE | `/microsoft/connection` | Disconnect the caller's account |
+| POST | `/microsoft/mail` | Sales. Send an Outlook email as the caller |
+| GET | `/microsoft/calendar` | Events in a window, in the org timezone |
+| POST | `/microsoft/meetings` | Sales. Create an event, optionally a Teams meeting |
+| DELETE | `/microsoft/meetings/:id` | Sales. Cancel an event |
 
 ### AI
 `GET /ai/status`, and `POST` to `/ai/smart-reply`, `/ai/sentiment-analysis`,

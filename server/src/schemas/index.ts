@@ -699,3 +699,49 @@ export const apolloImportSchema = apolloSearchSchema.extend({
   personIds: z.array(z.string().trim().min(1).max(64)).min(1).max(100),
 });
 export type ApolloImportInput = z.infer<typeof apolloImportSchema>;
+
+// --- Microsoft 365 (Outlook mail, Teams meetings, calendar) -----------------
+
+const emailAddress = z.string().trim().email().max(320);
+
+export const microsoftMailSchema = z.object({
+  to: z.array(emailAddress).min(1).max(100),
+  cc: z.array(emailAddress).max(100).optional(),
+  subject: z.string().trim().min(1).max(255),
+  body: z.string().min(1).max(150_000),
+  // Text unless the caller opts into HTML, so a plain message is never
+  // interpreted as markup.
+  html: z.boolean().optional(),
+  /** Optional lead to attribute the send to. */
+  leadId: z.string().uuid().optional(),
+});
+export type MicrosoftMailInput = z.infer<typeof microsoftMailSchema>;
+
+// Graph wants a local date-time (no zone suffix) plus a separate timezone, so
+// reject an offset here rather than letting it silently double-apply.
+const localDateTime = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/, 'Expected YYYY-MM-DDTHH:mm in local time');
+
+export const microsoftMeetingSchema = z.object({
+  subject: z.string().trim().min(1).max(255),
+  body: z.string().max(150_000).optional(),
+  start: localDateTime,
+  end: localDateTime,
+  /** IANA timezone; defaults to the org timezone when omitted. */
+  timeZone: z.string().trim().min(1).max(64).optional(),
+  attendees: z
+    .array(z.object({ email: emailAddress, name: z.string().trim().max(200).optional() }))
+    .max(100)
+    .optional(),
+  /** Attach a Teams online meeting with a join link. */
+  teams: z.boolean().optional(),
+  leadId: z.string().uuid().optional(),
+});
+export type MicrosoftMeetingInput = z.infer<typeof microsoftMeetingSchema>;
+
+export const microsoftCalendarQuery = z.object({
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+export type MicrosoftCalendarQuery = z.infer<typeof microsoftCalendarQuery>;

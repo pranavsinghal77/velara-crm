@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { logger } from '../utils/logger';
 import { publishDuePosts } from './delivery.service';
 import { purgeOAuthStates, refreshAccessToken } from './oauth.service';
+import { purgeMicrosoftStates } from '../microsoft/graph.service';
 import { refreshOrgInsights } from './insights.service';
 
 /**
@@ -118,7 +119,7 @@ async function runTokenUpkeepJob(): Promise<string | null> {
   // Single-use rows that were issued and never redeemed. `purgeOAuthStates`
   // was written for this and, like the scheduler itself, had no caller — so
   // the state table only ever grew.
-  const purged = await purgeOAuthStates();
+  const purged = (await purgeOAuthStates()) + (await purgeMicrosoftStates());
 
   if (refreshed === 0 && failed === 0 && purged === 0) return null;
 
